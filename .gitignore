@@ -46,3 +46,6 @@ logs/
 
 # Devcontainer ephemeral
 .devcontainer/.env
+
+# Claude Code local config (not project state)
+.claude/
