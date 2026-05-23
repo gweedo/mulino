@@ -41,12 +41,18 @@ uv run ruff check .                  # lint
 ```
 
 **Layer rules (enforce strictly):**
-- `domain/` — pure Python, no framework imports. Pizza aggregate, Money and Allergen value objects.
-- `application/` — use cases only. Depends on abstract `PizzaRepository` Protocol. No SQLAlchemy, no FastAPI.
+- `domain/` — pure Python, no framework imports. Pizza aggregate, Money and Allergen value objects (Owner value object lands in step 08).
+- `application/` — use cases only. Depends on abstract `PizzaRepository` and `OwnerRepository` Protocols. No SQLAlchemy, no FastAPI.
 - `infrastructure/` — SQLAlchemy models, `SqlPizzaRepository`, JWT/password helpers. Implements `application/` ports.
-- `api/` — FastAPI routers, Pydantic schemas, dependency wiring. Calls use cases; never touches domain directly.
+- `api/` — FastAPI routers, Pydantic schemas, dependency wiring. Calls use cases; never touches domain directly. **No CORS** — the frontend reaches the backend through a Next.js rewrite (same-origin from the browser). Cookies: `httpOnly`, `SameSite=Lax`, `Secure` set only when the request is HTTPS.
+
+**API endpoints (conventions, see step 09):**
+- Public pizza routes (`GET /api/pizzas`, `GET /api/pizzas/{id}`) return only `available=true`.
+- Admin pizza routes are namespaced under `/api/admin/pizzas` (no `?all=true` query flag).
+- `POST /api/auth/login` is rate-limited via `slowapi` to 5 req/min/IP and sets the `session` cookie. `POST /api/auth/logout` clears it. `GET /api/auth/me` returns the current owner.
 
 **DB / migrations:**
+Alembic ships in step 07 (alongside the SQLAlchemy models), not step 10. Step 10 only owns the owner seed script + the production migration runbook.
 ```bash
 uv run alembic revision --autogenerate -m "<msg>"
 uv run alembic upgrade head
@@ -54,7 +60,7 @@ uv run alembic downgrade -1
 ```
 
 **Environment variables (backend):**
-`DATABASE_URL`, `JWT_SECRET`, `JWT_ALG` (default HS256), `JWT_TTL_MIN` (default 120), `OWNER_EMAIL`, `OWNER_PASSWORD`.
+`DATABASE_URL`, `JWT_SECRET`, `JWT_ALG` (default HS256), `JWT_TTL_MIN` (default 120), `OWNER_EMAIL`, `OWNER_PASSWORD`. Optional: `OWNER_FORCE_RESET=1` makes `python -m pizzeria.seed_owner` overwrite an existing owner's `password_hash` (used for rotation / lost-password recovery).
 
 ## Frontend (Next.js + TypeScript)
 
@@ -74,14 +80,14 @@ npm run build        # production build check
 ```
 
 **Key conventions:**
-- `src/lib/api.ts` — typed HTTP client wrapping `fetch` with `credentials: 'include'`. All API calls go through here.
-- `src/lib/types.ts` — TypeScript types mirroring backend Pydantic schemas. Keep in sync manually.
-- Homepage (`src/app/page.tsx`) is a Next.js Server Component that fetches with `{ next: { revalidate: 60 } }`.
+- `src/lib/api.ts` — typed HTTP client wrapping `fetch` with `credentials: 'include'`. Uses relative URLs (`/api/...`) — same-origin via the Next.js rewrite. All API calls go through here.
+- `src/lib/api-types.ts` is **generated** from the backend's `/openapi.json` via `npm run types:gen` (uses `openapi-typescript`). `src/lib/types.ts` only re-exports / narrows the generated types. CI fails if `api-types.ts` is out of date.
+- Homepage (`src/app/page.tsx`) is a Next.js Server Component that fetches with `{ next: { tags: ['pizzas'], revalidate: 60 } }`. Admin create/edit/delete server actions call `revalidateTag('pizzas')` so edits show up immediately; the 60s ISR window is the fallback.
 - Admin routes (`src/app/admin/`) are client components gated by `src/middleware.ts` (checks httpOnly `session` cookie).
 - Tests live in `src/__tests__/` and use Vitest + React Testing Library + MSW for API mocking.
 
 **Environment variables (frontend):**
-`NEXT_PUBLIC_API_BASE_URL` (e.g. `http://localhost:8000`).
+`BACKEND_INTERNAL_URL` (e.g. `http://localhost:8000`) — consumed only by the Next.js server process. The browser always talks to the frontend origin; `next.config.mjs` rewrites `/api/*` to `BACKEND_INTERNAL_URL/api/*`. `NEXT_PUBLIC_*` API base is **not** used.
 
 ## Domain model (Pizza aggregate)
 
@@ -90,6 +96,8 @@ Fields: `id`, `name` (unique ≤80 chars), `description`, `ingredients` (≥1), 
 EU 14 allergens: `gluten crustaceans eggs fish peanuts soy milk nuts celery mustard sesame sulphites lupin molluscs`.
 
 Invariants are enforced in `backend/src/pizzeria/domain/` — never in the API or DB layer.
+
+**Owner aggregate** (introduced in step 08): frozen dataclass `Owner(id, email, password_hash)` in `backend/src/pizzeria/domain/owner.py`. The `application/ports/owner_repository.py` Protocol is the abstraction the `AuthenticateOwner` use case depends on — never the SQLAlchemy ORM.
 
 ## TDD discipline
 
