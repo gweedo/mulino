@@ -1,9 +1,9 @@
 from uuid import UUID
 
+from pizzeria.application.errors import PizzaNotFound
+from pizzeria.application.ports.pizza_repository import PizzaRepository
 from pizzeria.domain.allergen import Allergen
 from pizzeria.domain.money import Money
-from pizzeria.application.ports.pizza_repository import PizzaRepository
-from pizzeria.application.errors import PizzaNotFound
 
 
 class UpdatePizza:

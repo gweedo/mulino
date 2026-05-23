@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from pizzeria.domain.pizza import Pizza
-from pizzeria.application.ports.pizza_repository import PizzaRepository
 from pizzeria.application.errors import PizzaNotFound
+from pizzeria.application.ports.pizza_repository import PizzaRepository
+from pizzeria.domain.pizza import Pizza
 
 
 class GetPizza:

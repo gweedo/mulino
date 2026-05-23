@@ -2,10 +2,10 @@ from decimal import Decimal
 
 import pytest
 
-from pizzeria.domain.allergen import Allergen
+from pizzeria.application.use_cases.list_pizzas import ListPizzas
 from pizzeria.domain.money import Money
 from pizzeria.domain.pizza import Pizza
-from pizzeria.application.use_cases.list_pizzas import ListPizzas
+
 from .fakes import InMemoryPizzaRepository
 
 

@@ -1,5 +1,5 @@
-from pizzeria.domain.pizza import Pizza
 from pizzeria.application.ports.pizza_repository import PizzaRepository
+from pizzeria.domain.pizza import Pizza
 
 
 class ListPizzas:

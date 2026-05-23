@@ -1,8 +1,8 @@
+from pizzeria.application.errors import DuplicatePizzaName
+from pizzeria.application.ports.pizza_repository import PizzaRepository
 from pizzeria.domain.allergen import Allergen
 from pizzeria.domain.money import Money
 from pizzeria.domain.pizza import Pizza
-from pizzeria.application.ports.pizza_repository import PizzaRepository
-from pizzeria.application.errors import DuplicatePizzaName
 
 
 class CreatePizza:

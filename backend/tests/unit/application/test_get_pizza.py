@@ -2,10 +2,11 @@ from decimal import Decimal
 
 import pytest
 
+from pizzeria.application.errors import PizzaNotFound
+from pizzeria.application.use_cases.get_pizza import GetPizza
 from pizzeria.domain.money import Money
 from pizzeria.domain.pizza import Pizza
-from pizzeria.application.use_cases.get_pizza import GetPizza
-from pizzeria.application.errors import PizzaNotFound
+
 from .fakes import InMemoryPizzaRepository
 
 

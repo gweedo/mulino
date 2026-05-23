@@ -2,10 +2,11 @@ from decimal import Decimal
 
 import pytest
 
+from pizzeria.application.errors import DuplicatePizzaName
+from pizzeria.application.use_cases.create_pizza import CreatePizza
 from pizzeria.domain.allergen import Allergen
 from pizzeria.domain.money import Money
-from pizzeria.application.use_cases.create_pizza import CreatePizza
-from pizzeria.application.errors import DuplicatePizzaName
+
 from .fakes import InMemoryPizzaRepository
 
 

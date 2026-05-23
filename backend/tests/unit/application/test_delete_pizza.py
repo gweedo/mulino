@@ -3,10 +3,11 @@ from uuid import uuid4
 
 import pytest
 
+from pizzeria.application.errors import PizzaNotFound
+from pizzeria.application.use_cases.delete_pizza import DeletePizza
 from pizzeria.domain.money import Money
 from pizzeria.domain.pizza import Pizza
-from pizzeria.application.use_cases.delete_pizza import DeletePizza
-from pizzeria.application.errors import PizzaNotFound
+
 from .fakes import InMemoryPizzaRepository
 
 
