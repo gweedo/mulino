@@ -44,8 +44,8 @@ Thumbs.db
 *.log
 logs/
 
-# Devcontainer ephemeral
-.devcontainer/.env
+# Devcontainer (local development only)
+.devcontainer/
 
 # Claude Code local config (not project state)
 .claude/
