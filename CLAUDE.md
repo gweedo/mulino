@@ -35,10 +35,12 @@ uv run uvicorn pizzeria.api.main:app --reload   # http://localhost:8000
 cd backend
 uv run pytest                        # all tests
 uv run pytest tests/unit             # unit only (no DB needed)
-uv run pytest tests/integration      # requires Postgres
+uv run pytest tests/integration      # requires Postgres (auto-creates pizzeria_test if missing)
 uv run pytest -k test_create_pizza   # single test
 uv run ruff check .                  # lint
 ```
+
+The integration suite auto-creates `pizzeria_test` on first run, applies `alembic upgrade head` once per session, and wraps each test in a SAVEPOINT that is rolled back at teardown — no manual DB setup needed.
 
 **Layer rules (enforce strictly):**
 - `domain/` — pure Python, no framework imports. Pizza aggregate, Money and Allergen value objects (Owner value object lands in step 08).
