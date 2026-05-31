@@ -61,6 +61,18 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
+**Production deployment runbook:**
+On every deploy, before starting the FastAPI process:
+
+1. `uv run alembic upgrade head` — apply pending schema migrations.
+2. `OWNER_EMAIL=… OWNER_PASSWORD=… uv run python -m pizzeria.seed_owner` —
+   first deploy only; safe to re-run (no-op if owner exists).
+3. Password rotation / lost-password recovery:
+   `OWNER_EMAIL=… OWNER_PASSWORD=newpass OWNER_FORCE_RESET=1 uv run python -m pizzeria.seed_owner`
+4. Start `uvicorn pizzeria.api.main:app`.
+
+Step 1 must complete before step 4 to avoid serving traffic against a stale schema.
+
 **Environment variables (backend):**
 `DATABASE_URL`, `JWT_SECRET`, `JWT_ALG` (default HS256), `JWT_TTL_MIN` (default 120), `OWNER_EMAIL`, `OWNER_PASSWORD`. Optional: `OWNER_FORCE_RESET=1` makes `python -m pizzeria.seed_owner` overwrite an existing owner's `password_hash` (used for rotation / lost-password recovery).
 
