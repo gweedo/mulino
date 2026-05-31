@@ -20,8 +20,9 @@ async def test_create_pizza_success():
         name="Margherita",
         description="Classic",
         ingredients=["tomato", "mozzarella"],
-        allergens={Allergen.milk},
-        price=Money(Decimal("10.00"), "EUR"),
+        allergen_names=["milk"],
+        price_amount=Decimal("10.00"),
+        price_currency="EUR",
     )
 
     assert pizza.name == "Margherita"
@@ -45,8 +46,9 @@ async def test_create_pizza_duplicate_name():
         name="Margherita",
         description="",
         ingredients=["x"],
-        allergens=set(),
-        price=Money(Decimal("10"), "EUR"),
+        allergen_names=[],
+        price_amount=Decimal("10"),
+        price_currency="EUR",
     )
 
     with pytest.raises(DuplicatePizzaName):
@@ -54,6 +56,7 @@ async def test_create_pizza_duplicate_name():
             name="Margherita",
             description="",
             ingredients=["y"],
-            allergens=set(),
-            price=Money(Decimal("15"), "EUR"),
+            allergen_names=[],
+            price_amount=Decimal("15"),
+            price_currency="EUR",
         )

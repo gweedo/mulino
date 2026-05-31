@@ -158,40 +158,62 @@ def test_pizza_change_price():
     assert p.price == new_price
 
 
-def test_pizza_update():
-    """update() modifies multiple fields with validation."""
-    p = Pizza.create(
-        name="Original",
-        description="Old desc",
-        ingredients=["tomato"],
-        allergens={Allergen.milk},
-        price=Money(Decimal("10"), "EUR"),
-    )
-    p.update(
-        name="Updated",
-        description="New desc",
-        ingredients=["tomato", "cheese"],
-        allergens={Allergen.milk, Allergen.gluten},
-        price=Money(Decimal("12"), "EUR"),
-    )
-    assert p.name == "Updated"
-    assert p.description == "New desc"
-    assert p.ingredients == ["tomato", "cheese"]
-    assert p.allergens == frozenset({Allergen.milk, Allergen.gluten})
-    assert p.price == Money(Decimal("12"), "EUR")
-
-
-def test_pizza_update_validates_on_partial():
-    """update() validates fields even when only some are provided."""
+def test_pizza_change_description():
+    """change_description() updates the description."""
     p = Pizza.create(
         name="Pizza",
-        description="",
+        description="old",
         ingredients=["x"],
         allergens=set(),
         price=Money(Decimal("10"), "EUR"),
     )
-    with pytest.raises(ValueError, match="name must not be empty"):
-        p.update(name="")
+    p.change_description("new")
+    assert p.description == "new"
+
+
+def test_pizza_change_ingredients():
+    """change_ingredients() replaces ingredients with validation."""
+    p = Pizza.create(
+        name="Pizza",
+        description="",
+        ingredients=["tomato"],
+        allergens=set(),
+        price=Money(Decimal("10"), "EUR"),
+    )
+    p.change_ingredients(["tomato", "cheese"])
+    assert p.ingredients == ["tomato", "cheese"]
+
+    with pytest.raises(ValueError, match="at least 1 ingredient"):
+        p.change_ingredients([])
+
+
+def test_pizza_change_allergens():
+    """change_allergens() replaces allergens with validation."""
+    p = Pizza.create(
+        name="Pizza",
+        description="",
+        ingredients=["x"],
+        allergens={Allergen.milk},
+        price=Money(Decimal("10"), "EUR"),
+    )
+    p.change_allergens({Allergen.gluten, Allergen.eggs})
+    assert p.allergens == frozenset({Allergen.gluten, Allergen.eggs})
+
+    with pytest.raises(ValueError, match="must be Allergen enum members"):
+        p.change_allergens({"milk"})  # type: ignore
+
+
+def test_pizza_ingredients_property_returns_copy():
+    """Mutating the returned ingredients list must not affect the aggregate."""
+    p = Pizza.create(
+        name="X",
+        description="",
+        ingredients=["tomato"],
+        allergens=set(),
+        price=Money(Decimal("10"), "EUR"),
+    )
+    p.ingredients.append("hacked")
+    assert p.ingredients == ["tomato"]
 
 
 def test_pizza_allergens_must_be_enum_members():

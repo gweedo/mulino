@@ -25,8 +25,9 @@ async def test_update_pizza_success():
         name="Updated",
         description="new desc",
         ingredients=["y"],
-        allergens={Allergen.gluten},
-        price=Money(Decimal("15"), "EUR"),
+        allergen_names=["gluten"],
+        price_amount=Decimal("15"),
+        price_currency="EUR",
     )
 
     updated = await repo.get(p.id)
@@ -48,6 +49,45 @@ async def test_update_pizza_not_found():
             name="X",
             description="",
             ingredients=["x"],
-            allergens=set(),
-            price=Money(Decimal("10"), "EUR"),
+            allergen_names=[],
+            price_amount=Decimal("10"),
+            price_currency="EUR",
         )
+
+
+@pytest.mark.asyncio
+async def test_update_pizza_marks_unavailable():
+    repo = InMemoryPizzaRepository()
+    p = Pizza.create("Test", "desc", ["x"], set(), Money(Decimal("10"), "EUR"))
+    await repo.add(p)
+
+    await UpdatePizza(repo).execute(pizza_id=p.id, available=False)
+
+    updated = await repo.get(p.id)
+    assert updated.available is False
+
+
+@pytest.mark.asyncio
+async def test_update_pizza_marks_available():
+    repo = InMemoryPizzaRepository()
+    p = Pizza.create("Test", "desc", ["x"], set(), Money(Decimal("10"), "EUR"))
+    p.mark_unavailable()
+    await repo.add(p)
+
+    await UpdatePizza(repo).execute(pizza_id=p.id, available=True)
+
+    updated = await repo.get(p.id)
+    assert updated.available is True
+
+
+@pytest.mark.asyncio
+async def test_update_pizza_available_none_leaves_unchanged():
+    repo = InMemoryPizzaRepository()
+    p = Pizza.create("Test", "desc", ["x"], set(), Money(Decimal("10"), "EUR"))
+    await repo.add(p)
+    original_available = p.available
+
+    await UpdatePizza(repo).execute(pizza_id=p.id, name="Renamed")
+
+    updated = await repo.get(p.id)
+    assert updated.available == original_available

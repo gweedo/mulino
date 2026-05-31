@@ -37,7 +37,7 @@ class Pizza:
 
     @property
     def ingredients(self) -> list[str]:
-        return self._ingredients
+        return list(self._ingredients)
 
     @property
     def allergens(self) -> frozenset[Allergen]:
@@ -89,28 +89,18 @@ class Pizza:
         """Update the pizza price."""
         self._price = new_price
 
-    def update(
-        self,
-        name: str | None = None,
-        description: str | None = None,
-        ingredients: list[str] | None = None,
-        allergens: set[Allergen] | frozenset[Allergen] | None = None,
-        price: Money | None = None,
+    def change_description(self, new_description: str) -> None:
+        self._description = new_description
+
+    def change_ingredients(self, new_ingredients: list[str]) -> None:
+        Pizza._validate_ingredients(new_ingredients)
+        self._ingredients = list(new_ingredients)
+
+    def change_allergens(
+        self, new_allergens: set[Allergen] | frozenset[Allergen]
     ) -> None:
-        """Update pizza attributes with validation."""
-        if name is not None:
-            Pizza._validate_name(name)
-            self._name = name
-        if description is not None:
-            self._description = description
-        if ingredients is not None:
-            Pizza._validate_ingredients(ingredients)
-            self._ingredients = ingredients
-        if allergens is not None:
-            Pizza._validate_allergens(allergens)
-            self._allergens = frozenset(allergens)
-        if price is not None:
-            self._price = price
+        Pizza._validate_allergens(new_allergens)
+        self._allergens = frozenset(new_allergens)
 
     @staticmethod
     def _validate_name(name: str) -> None:
@@ -121,7 +111,7 @@ class Pizza:
 
     @staticmethod
     def _validate_ingredients(ingredients: list[str]) -> None:
-        if not ingredients or len(ingredients) == 0:
+        if not ingredients:
             raise ValueError("Pizza must have at least 1 ingredient")
 
     @staticmethod

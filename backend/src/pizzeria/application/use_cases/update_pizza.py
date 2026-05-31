@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import UUID
 
 from pizzeria.application.errors import PizzaNotFound
@@ -15,16 +16,36 @@ class UpdatePizza:
     async def execute(
         self,
         pizza_id: UUID,
+        *,
         name: str | None = None,
         description: str | None = None,
         ingredients: list[str] | None = None,
-        allergens: set[Allergen] | frozenset[Allergen] | None = None,
-        price: Money | None = None,
+        allergen_names: list[str] | None = None,
+        price_amount: Decimal | None = None,
+        price_currency: str | None = None,
+        available: bool | None = None,
     ) -> None:
         """Execute the update pizza use case."""
         pizza = await self.repository.get(pizza_id)
         if pizza is None:
             raise PizzaNotFound(f"Pizza with id {pizza_id} not found")
 
-        pizza.update(name, description, ingredients, allergens, price)
+        # Orchestrate intent methods on the aggregate
+        if name is not None:
+            pizza.rename(name)
+        if description is not None:
+            pizza.change_description(description)
+        if ingredients is not None:
+            pizza.change_ingredients(ingredients)
+        if allergen_names is not None:
+            allergens = {Allergen(a) for a in allergen_names}
+            pizza.change_allergens(allergens)
+        if price_amount is not None and price_currency is not None:
+            price = Money(amount=price_amount, currency=price_currency)
+            pizza.change_price(price)
+        if available is True:
+            pizza.mark_available()
+        elif available is False:
+            pizza.mark_unavailable()
+
         await self.repository.update(pizza)
