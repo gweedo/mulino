@@ -98,11 +98,14 @@ npm run lint         # eslint
 npm run build        # production build check
 ```
 
+**Next.js 16 breaking changes (vs. your training data):**
+- `middleware.ts` → **`proxy.ts`**. The file is `src/proxy.ts` and exports `export function proxy(...)`. The word "middleware" no longer exists in Next.js 16 — it is called **Proxy**. Do not create or reference `middleware.ts`.
+
 **Key conventions:**
 - `src/lib/api.ts` — typed HTTP client wrapping `fetch` with `credentials: 'include'`. Uses relative URLs (`/api/...`) — same-origin via the Next.js rewrite. All API calls go through here.
 - `src/lib/api-types.ts` is **generated** from the backend's `/openapi.json` via `npm run types:gen` (uses `openapi-typescript`). `src/lib/types.ts` only re-exports / narrows the generated types. CI fails if `api-types.ts` is out of date.
 - Homepage (`src/app/page.tsx`) is a Next.js Server Component that fetches with `{ next: { tags: ['pizzas'], revalidate: 60 } }`. Admin create/edit/delete server actions call `revalidateTag('pizzas')` so edits show up immediately; the 60s ISR window is the fallback.
-- Admin routes (`src/app/admin/`) are client components gated by `src/proxy.ts` (Next.js 16 renamed middleware to proxy; checks httpOnly `session` cookie).
+- Admin routes (`src/app/admin/`) are client components gated by `src/proxy.ts` (checks httpOnly `session` cookie).
 - Tests live in `src/__tests__/` and use Vitest + React Testing Library + MSW for API mocking.
 
 **Environment variables (frontend):**
