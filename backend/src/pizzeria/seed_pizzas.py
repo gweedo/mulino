@@ -29,8 +29,12 @@ class PizzaSeed:
 PIZZAS: list[PizzaSeed] = [
     PizzaSeed(
         name="Margherita",
-        description="Il classico senza tempo. Pomodoro San Marzano, fior di latte, basilico fresco.",
-        ingredients=["farina 00", "pomodoro San Marzano", "fior di latte", "basilico", "olio EVO"],
+        description=(
+            "Il classico senza tempo. Pomodoro San Marzano, fior di latte, basilico fresco."
+        ),
+        ingredients=[
+            "farina 00", "pomodoro San Marzano", "fior di latte", "basilico", "olio EVO",
+        ],
         allergens=["gluten", "milk"],
         price_amount=Decimal("9.50"),
     ),
@@ -58,7 +62,9 @@ PIZZAS: list[PizzaSeed] = [
     PizzaSeed(
         name="Quattro Formaggi",
         description="Fior di latte, gorgonzola, parmigiano, provola affumicata.",
-        ingredients=["farina 00", "fior di latte", "gorgonzola", "parmigiano", "provola affumicata"],
+        ingredients=[
+            "farina 00", "fior di latte", "gorgonzola", "parmigiano", "provola affumicata",
+        ],
         allergens=["gluten", "milk"],
         price_amount=Decimal("13.50"),
     ),
@@ -74,7 +80,9 @@ PIZZAS: list[PizzaSeed] = [
     ),
     PizzaSeed(
         name="Bufalina",
-        description="Pomodoro San Marzano, mozzarella di bufala DOP, basilico. Ingredienti e nient'altro.",
+        description=(
+            "Pomodoro San Marzano, mozzarella di bufala DOP, basilico. Ingredienti e nient'altro."
+        ),
         ingredients=["farina 00", "pomodoro San Marzano", "mozzarella di bufala DOP", "basilico"],
         allergens=["gluten", "milk"],
         price_amount=Decimal("14.00"),
