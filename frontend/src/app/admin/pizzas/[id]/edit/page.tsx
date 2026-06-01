@@ -9,19 +9,21 @@ import styles from '../../form.module.css'
 
 export const metadata: Metadata = { title: 'Modifica pizza — Pizzeria il Mulino' }
 
+// The backend has no GET /api/admin/pizzas/:id endpoint — only a full list.
+// Fetch the list and find by ID.
 async function fetchPizza(id: string): Promise<PizzaOut | null> {
   const store = await cookies()
   const session = store.get('session')
   const backend = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:8000'
 
   try {
-    const res = await fetch(`${backend}/api/admin/pizzas/${id}`, {
+    const res = await fetch(`${backend}/api/admin/pizzas`, {
       headers: session ? { Cookie: `session=${session.value}` } : {},
       cache: 'no-store',
     })
-    if (res.status === 404) return null
     if (!res.ok) return null
-    return res.json()
+    const pizzas: PizzaOut[] = await res.json()
+    return pizzas.find((p) => p.id === id) ?? null
   } catch {
     return null
   }
