@@ -1,0 +1,68 @@
+.screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg) var(--container-gutter);
+  background-color: var(--color-surface);
+}
+
+.panel {
+  width: 100%;
+  max-width: 30rem;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  padding: clamp(1.75rem, 5vw, 2.75rem);
+}
+
+.wordmark {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.heading {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--color-ink);
+  margin-top: 0.5rem;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  max-width: 42ch;
+  margin-top: 0.5rem;
+  margin-bottom: var(--space-lg);
+}
+
+.logout {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+  padding: 0.6rem 1.1rem;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.logout:hover:not(:disabled) {
+  border-color: var(--color-muted);
+  background-color: var(--color-surface);
+}
+
+.logout:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logout {
+    transition: none;
+  }
+}

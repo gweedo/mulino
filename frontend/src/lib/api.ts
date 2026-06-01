@@ -6,13 +6,24 @@ import type { MeResponse, PizzaIn, PizzaOut, PizzaUpdate } from './api-types'
 
 const BASE = '/api'
 
+/** Thrown by every failed request so callers can branch on the HTTP status. */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    statusText: string,
+  ) {
+    super(`${status} ${statusText}`)
+    this.name = 'ApiError'
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...init?.headers },
     ...init,
   })
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  if (!res.ok) throw new ApiError(res.status, res.statusText)
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
