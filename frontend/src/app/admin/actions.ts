@@ -75,6 +75,32 @@ export async function deletePizzaAction(id: string) {
   invalidatePizzas()
 }
 
+export async function loginAction(email: string, password: string) {
+  const res = await fetch(`${BACKEND}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+
+  if (res.status === 401) throw new Error('401')
+  if (!res.ok) throw new Error(`${res.status}`)
+
+  // Rewrites don't forward Set-Cookie to the browser — set it server-side instead.
+  const setCookieHeader = res.headers.get('set-cookie')
+  const match = setCookieHeader?.match(/session=([^;]+)/)
+  if (match) {
+    const store = await cookies()
+    store.set('session', match[1], {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      path: '/',
+    })
+  }
+
+  redirect('/admin')
+}
+
 export async function logoutAction() {
   await fetch(`${BACKEND}/api/auth/logout`, {
     method: 'POST',
