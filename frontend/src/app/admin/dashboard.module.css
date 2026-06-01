@@ -1,0 +1,218 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-on-deep);
+  background-color: var(--color-deep);
+  border: none;
+  border-radius: 4px;
+  padding: 0.55rem 1rem;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.addButton:hover {
+  background-color: oklch(0.290 0.080 200);
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-2xl) var(--space-md);
+  text-align: center;
+  color: var(--color-muted);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  border-radius: 6px;
+}
+
+.emptyLink {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Pizza list ─────────────────────────────────────────────── */
+.list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-divider);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--color-bg);
+}
+
+.list > li + li {
+  border-top: 1px solid var(--color-divider);
+}
+
+/* ── Row ────────────────────────────────────────────────────── */
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1.1rem;
+  transition: background-color 120ms ease;
+}
+
+.row:hover {
+  background-color: oklch(0.952 0.009 200 / 0.5);
+}
+
+.rowMain {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.pizzaName {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.pizzaPrice {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.pizzaDesc {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/* ── Availability toggle ────────────────────────────────────── */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem 0.3rem 0.45rem;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.toggleOn {
+  color: oklch(0.230 0.075 200);
+  background-color: oklch(0.230 0.075 200 / 0.1);
+  border-color: oklch(0.230 0.075 200 / 0.4);
+}
+
+.toggleOff {
+  color: var(--color-muted);
+  background-color: transparent;
+  border-color: var(--color-divider);
+}
+
+.toggle:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.toggleDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+/* ── Edit / delete ──────────────────────────────────────────── */
+.editLink {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0.3rem 0.4rem;
+  border-radius: 3px;
+}
+
+.editLink:hover {
+  color: var(--color-deep);
+}
+
+.deleteBtn {
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  color: var(--color-error);
+}
+
+.deleteBtnConfirm {
+  color: var(--color-error);
+  border-color: oklch(0.480 0.170 27 / 0.4);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .addButton,
+  .toggle,
+  .deleteBtn { transition: none; }
+}
+
+@media (max-width: 480px) {
+  .rowMain { flex-wrap: wrap; }
+  .rowActions { gap: 0.5rem; }
+}
