@@ -27,8 +27,13 @@ cd backend
 uv sync
 uv run alembic upgrade head
 OWNER_EMAIL=owner@example.com OWNER_PASSWORD=secret uv run python -m pizzeria.seed_owner
+uv run python -m pizzeria.seed_pizzas          # optional: seed 7 sample pizzas
 uv run uvicorn pizzeria.api.main:app --reload   # http://localhost:8000
 ```
+
+**Dev credentials (after seeding):**
+- Admin login: `owner@example.com` / `secret`
+- `seed_pizzas` is idempotent — safe to re-run; skips existing names.
 
 **Tests:**
 ```bash
