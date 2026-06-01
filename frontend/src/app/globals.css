@@ -11,6 +11,10 @@
   --color-on-deep:        oklch(1.000 0.000 0);
   --color-on-deep-muted:  oklch(0.720 0.040 200);
 
+  /* Semantic — feedback */
+  --color-error:          oklch(0.480 0.170 27);
+  --color-error-surface:  oklch(0.962 0.022 27);
+
   /* Typography */
   --font-body: var(--font-vollkorn, Georgia, serif);
 
