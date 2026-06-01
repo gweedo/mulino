@@ -1,0 +1,103 @@
+.hero {
+  min-height: 100svh;
+  background-color: var(--color-deep);
+  color: var(--color-on-deep);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Nav ── */
+.nav {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: clamp(1.25rem, 3vw, 2rem) var(--container-gutter);
+  gap: var(--space-sm);
+}
+
+.navLogo {
+  font-size: clamp(0.875rem, 1.5vw, 1rem);
+  font-weight: 400;
+  color: var(--color-on-deep-muted);
+  letter-spacing: 0.01em;
+}
+
+.navLink {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-on-deep-muted);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: var(--color-on-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink { transition: none; }
+}
+
+/* ── Content ── */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-2xl) var(--container-gutter);
+  max-width: calc(var(--container-max) + 2 * var(--container-gutter));
+}
+
+.heading {
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1.0;
+  letter-spacing: -0.025em;
+  color: var(--color-on-deep);
+  max-width: 14ch;
+}
+
+.headingLabel {
+  display: block;
+  font-size: clamp(0.95rem, 2vw, 1.35rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--color-on-deep-muted);
+  margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+}
+
+.tagline {
+  margin-top: clamp(1.25rem, 3vw, 2rem);
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  font-weight: 400;
+  color: var(--color-on-deep-muted);
+  line-height: 1.5;
+  max-width: 42ch;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding: 0.85em 1.75em;
+  border: 1px solid var(--color-on-deep);
+  color: var(--color-on-deep);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  min-height: 44px;
+  align-self: flex-start;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.cta:hover {
+  background-color: var(--color-on-deep);
+  color: var(--color-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta { transition: none; }
+}

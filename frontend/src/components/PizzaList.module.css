@@ -1,0 +1,24 @@
+.section {
+  padding: var(--space-2xl) var(--container-gutter);
+  max-width: calc(var(--container-max) + 2 * var(--container-gutter));
+  margin: 0 auto;
+  width: 100%;
+}
+
+.heading {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--color-ink);
+  margin-bottom: var(--space-lg);
+  letter-spacing: -0.01em;
+}
+
+.list {
+  width: 100%;
+}
+
+.empty {
+  padding: var(--space-xl) 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+}
