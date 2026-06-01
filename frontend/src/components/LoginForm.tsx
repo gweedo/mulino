@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { loginAction } from '@/app/admin/actions'
 import styles from './LoginForm.module.css'
 
@@ -12,6 +13,7 @@ interface FieldErrors {
 }
 
 export default function LoginForm() {
+  const router = useRouter()
   const emailId = useId()
   const passwordId = useId()
 
@@ -39,6 +41,8 @@ export default function LoginForm() {
     startTransition(async () => {
       try {
         await loginAction(email.trim(), password)
+        router.push('/admin')
+        router.refresh()
       } catch (err) {
         const msg = err instanceof Error ? err.message : ''
         if (msg === '401') {

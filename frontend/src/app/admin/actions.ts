@@ -85,7 +85,10 @@ export async function loginAction(email: string, password: string) {
   if (res.status === 401) throw new Error('401')
   if (!res.ok) throw new Error(`${res.status}`)
 
-  // Rewrites don't forward Set-Cookie to the browser — set it server-side instead.
+  // Ensure the session cookie reaches the browser regardless of whether the
+  // rewrite forwards Set-Cookie headers. Read it from the upstream response
+  // and set it via next/headers so it lands on the same-origin response
+  // the browser actually receives.
   const setCookieHeader = res.headers.get('set-cookie')
   const match = setCookieHeader?.match(/session=([^;]+)/)
   if (match) {
@@ -97,8 +100,9 @@ export async function loginAction(email: string, password: string) {
       path: '/',
     })
   }
-
-  redirect('/admin')
+  // No redirect() here — redirect() throws a special pseudo-error that gets
+  // swallowed by the try-catch in LoginForm's useTransition. The client
+  // navigates to /admin after this action resolves successfully.
 }
 
 export async function logoutAction() {
