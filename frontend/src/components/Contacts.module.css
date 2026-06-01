@@ -1,0 +1,97 @@
+.footer {
+  background-color: var(--color-deep);
+  color: var(--color-on-deep);
+  padding: var(--space-2xl) var(--container-gutter);
+}
+
+.inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+}
+
+.heading {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--color-on-deep);
+  margin-bottom: var(--space-xl);
+  letter-spacing: -0.01em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-xl) var(--space-2xl);
+}
+
+.col h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-on-deep-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.address {
+  font-style: normal;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-on-deep);
+}
+
+.address p {
+  margin-top: 0.4rem;
+}
+
+.mapLink {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-on-deep-muted);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  transition: color 0.2s ease;
+}
+
+.mapLink:hover {
+  color: var(--color-on-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapLink { transition: none; }
+}
+
+.hours {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-on-deep);
+}
+
+.hours li + li {
+  margin-top: 0.15rem;
+}
+
+.phone {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-on-deep);
+  display: block;
+  transition: color 0.2s ease;
+}
+
+.phone:hover {
+  color: var(--color-on-deep-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone { transition: none; }
+}
+
+.note {
+  margin-top: var(--space-2xl);
+  font-size: 0.8rem;
+  color: var(--color-on-deep-muted);
+  padding-top: var(--space-lg);
+  border-top: 1px solid oklch(1 0 0 / 0.12);
+}

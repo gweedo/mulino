@@ -1,0 +1,16 @@
+export const allergenLabel: Record<string, string> = {
+  gluten:      'Glutine',
+  crustaceans: 'Crostacei',
+  eggs:        'Uova',
+  fish:        'Pesce',
+  peanuts:     'Arachidi',
+  soy:         'Soia',
+  milk:        'Latte',
+  nuts:        'Frutta a guscio',
+  celery:      'Sedano',
+  mustard:     'Senape',
+  sesame:      'Sesamo',
+  sulphites:   'Solfiti',
+  lupin:       'Lupini',
+  molluscs:    'Molluschi',
+}
