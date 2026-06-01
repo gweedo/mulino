@@ -2,7 +2,7 @@
  * Typed HTTP client for browser-side (admin) API calls.
  * Uses relative URLs so Next.js rewrites /api/* → BACKEND_INTERNAL_URL/api/*.
  */
-import type { MeResponse, PizzaIn, PizzaOut, PizzaUpdate } from './api-types'
+import type { MeResponse, PizzaIn, PizzaOut, PizzaUpdate } from './types'
 
 const BASE = '/api'
 
@@ -33,7 +33,7 @@ export const login = (email: string, password: string) =>
   request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
 
 export const logout = () =>
-  request('/auth/logout', { method: 'POST' })
+  request<void>('/auth/logout', { method: 'POST' })
 
 export const me = () =>
   request<MeResponse>('/auth/me')
@@ -47,10 +47,10 @@ export const listAllPizzas = () =>
   request<PizzaOut[]>('/admin/pizzas')
 
 export const createPizza = (data: PizzaIn) =>
-  request<PizzaOut>('/admin/pizzas', { method: 'POST', body: JSON.stringify(data) })
+  request<PizzaOut>('/pizzas', { method: 'POST', body: JSON.stringify(data) })
 
 export const updatePizza = (id: string, data: PizzaUpdate) =>
-  request<PizzaOut>(`/admin/pizzas/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  request<void>(`/pizzas/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 
 export const deletePizza = (id: string) =>
-  request<void>(`/admin/pizzas/${id}`, { method: 'DELETE' })
+  request<void>(`/pizzas/${id}`, { method: 'DELETE' })

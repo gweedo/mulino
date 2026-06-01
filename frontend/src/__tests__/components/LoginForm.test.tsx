@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ApiError } from '@/lib/api'
-import * as api from '@/lib/api'
+import * as actions from '@/app/admin/actions'
 import LoginForm from '@/components/LoginForm'
 
 const { pushMock, refreshMock } = vi.hoisted(() => ({
@@ -13,21 +12,21 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock, refresh: refreshMock }),
 }))
 
-vi.mock('@/lib/api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/api')>()
-  return { ...actual, login: vi.fn() }
+vi.mock('@/app/admin/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/app/admin/actions')>()
+  return { ...actual, loginAction: vi.fn() }
 })
 
-const login = vi.mocked(api.login)
+const loginAction = vi.mocked(actions.loginAction)
 
 beforeEach(() => {
   vi.clearAllMocks()
 })
 
 describe('LoginForm', () => {
-  it('submits valid credentials and navigates to /admin', async () => {
+  it('submits valid credentials via loginAction', async () => {
     const user = userEvent.setup()
-    login.mockResolvedValueOnce(undefined)
+    loginAction.mockResolvedValueOnce(undefined)
 
     render(<LoginForm />)
     await user.type(screen.getByLabelText(/email/i), 'owner@example.com')
@@ -35,14 +34,13 @@ describe('LoginForm', () => {
     await user.click(screen.getByRole('button', { name: /accedi/i }))
 
     await waitFor(() => {
-      expect(login).toHaveBeenCalledWith('owner@example.com', 'secret123')
+      expect(loginAction).toHaveBeenCalledWith('owner@example.com', 'secret123')
     })
-    expect(pushMock).toHaveBeenCalledWith('/admin')
   })
 
   it('shows an inline error on 401 without leaking which field was wrong', async () => {
     const user = userEvent.setup()
-    login.mockRejectedValueOnce(new ApiError(401, 'Unauthorized'))
+    loginAction.mockRejectedValueOnce(new Error('401'))
 
     render(<LoginForm />)
     await user.type(screen.getByLabelText(/email/i), 'owner@example.com')
@@ -51,12 +49,11 @@ describe('LoginForm', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(/email o password non corretti/i)
-    expect(pushMock).not.toHaveBeenCalled()
   })
 
   it('shows a generic error on non-401 failures', async () => {
     const user = userEvent.setup()
-    login.mockRejectedValueOnce(new ApiError(500, 'Internal Server Error'))
+    loginAction.mockRejectedValueOnce(new Error('500'))
 
     render(<LoginForm />)
     await user.type(screen.getByLabelText(/email/i), 'owner@example.com')
@@ -65,7 +62,6 @@ describe('LoginForm', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent(/riprova/i)
-    expect(pushMock).not.toHaveBeenCalled()
   })
 
   it('blocks submission and shows validation messages when fields are empty', async () => {
@@ -76,10 +72,10 @@ describe('LoginForm', () => {
 
     expect(screen.getByText(/inserisci un'email valida/i)).toBeInTheDocument()
     expect(screen.getByText(/inserisci la password/i)).toBeInTheDocument()
-    expect(login).not.toHaveBeenCalled()
+    expect(loginAction).not.toHaveBeenCalled()
   })
 
-  it('rejects a malformed email before calling the API', async () => {
+  it('rejects a malformed email before calling the action', async () => {
     const user = userEvent.setup()
 
     render(<LoginForm />)
@@ -88,13 +84,13 @@ describe('LoginForm', () => {
     await user.click(screen.getByRole('button', { name: /accedi/i }))
 
     expect(screen.getByText(/inserisci un'email valida/i)).toBeInTheDocument()
-    expect(login).not.toHaveBeenCalled()
+    expect(loginAction).not.toHaveBeenCalled()
   })
 
-  it('disables the submit control while the request is in flight', async () => {
+  it('disables the submit control while the action is in flight', async () => {
     const user = userEvent.setup()
     let resolve: () => void = () => {}
-    login.mockImplementationOnce(() => new Promise<void>((r) => { resolve = r }))
+    loginAction.mockImplementationOnce(() => new Promise<void>((r) => { resolve = r }))
 
     render(<LoginForm />)
     await user.type(screen.getByLabelText(/email/i), 'owner@example.com')

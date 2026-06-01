@@ -1,8 +1,8 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ApiError, login } from '@/lib/api'
+import { loginAction } from '@/app/admin/actions'
 import styles from './LoginForm.module.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -21,7 +21,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [pending, startTransition] = useTransition()
 
   function validate(): FieldErrors {
     const next: FieldErrors = {}
@@ -30,7 +30,7 @@ export default function LoginForm() {
     return next
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError(null)
 
@@ -38,19 +38,20 @@ export default function LoginForm() {
     setFieldErrors(errors)
     if (errors.email || errors.password) return
 
-    setSubmitting(true)
-    try {
-      await login(email.trim(), password)
-      router.push('/admin')
-      router.refresh()
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        setFormError('Email o password non corretti.')
-      } else {
-        setFormError('Si è verificato un problema. Riprova.')
+    startTransition(async () => {
+      try {
+        await loginAction(email.trim(), password)
+        router.push('/admin')
+        router.refresh()
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : ''
+        if (msg === '401') {
+          setFormError('Email o password non corretti.')
+        } else {
+          setFormError('Si è verificato un problema. Riprova.')
+        }
       }
-      setSubmitting(false)
-    }
+    })
   }
 
   const emailErrorId = `${emailId}-error`
@@ -78,7 +79,7 @@ export default function LoginForm() {
           spellCheck={false}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          disabled={submitting}
+          disabled={pending}
           aria-invalid={fieldErrors.email ? true : undefined}
           aria-describedby={fieldErrors.email ? emailErrorId : undefined}
         />
@@ -101,7 +102,7 @@ export default function LoginForm() {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          disabled={submitting}
+          disabled={pending}
           aria-invalid={fieldErrors.password ? true : undefined}
           aria-describedby={fieldErrors.password ? passwordErrorId : undefined}
         />
@@ -112,8 +113,8 @@ export default function LoginForm() {
         )}
       </div>
 
-      <button className={styles.submit} type="submit" disabled={submitting} aria-busy={submitting}>
-        {submitting ? 'Accesso in corso…' : 'Accedi'}
+      <button className={styles.submit} type="submit" disabled={pending} aria-busy={pending}>
+        {pending ? 'Accesso in corso…' : 'Accedi'}
       </button>
     </form>
   )

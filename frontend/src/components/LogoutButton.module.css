@@ -1,0 +1,26 @@
+.button {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: none;
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.button:hover:not(:disabled) {
+  color: var(--color-ink);
+  border-color: var(--color-muted);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+}
