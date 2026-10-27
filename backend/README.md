@@ -35,11 +35,11 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
-`alembic/env.py` reads `DATABASE_URL` from `pizzeria.infrastructure.settings.Settings`, so the same env var drives the app, the tests, and migrations alike.
+`alembic/env.py` reads `DATABASE_URL` from `pizzeria.infrastructure.settings.DatabaseSettings`, so the same env var drives the app, the tests, and migrations alike. Tables live in the private `pizzeria` schema.
 
 ## Layers
 
-- `domain/` — pure Python, no framework imports. `Allergen`, `Money`, `Pizza`, `Owner`.
-- `application/` — use cases over abstract `PizzaRepository` / `OwnerRepository` Protocols. No SQLAlchemy, no FastAPI.
+- `domain/` — pure Python, no framework imports. `Allergen`, `Money`, `Pizza`, `MenuManager`.
+- `application/` — use cases over the abstract `PizzaRepository` Protocol. No SQLAlchemy, no FastAPI.
 - `infrastructure/` — SQLAlchemy models, `Sql*Repository`, mappers, settings. Also `InMemoryPizzaRepository` (first-class fake usable from tests, CLI dry-runs, or doc snippets).
 - `api/` — FastAPI routers + Pydantic schemas (step 09).

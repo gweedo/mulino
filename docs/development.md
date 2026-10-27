@@ -14,23 +14,39 @@ reachable at host `db`.
 cd backend
 uv sync                        # install dependencies
 uv run alembic upgrade head    # apply migrations
-# seed the single owner (idempotent):
-OWNER_EMAIL=owner@example.com OWNER_PASSWORD=secret uv run python -m pizzeria.seed_owner
 uv run python -m pizzeria.seed_pizzas          # optional: 7 sample pizzas
 uv run uvicorn pizzeria.api.main:app --reload  # http://localhost:8000
 ```
 
 The backend reads `DATABASE_URL` (e.g.
 `postgresql+asyncpg://postgres:postgres@db:5432/pizzeria_dev`) and
-`JWT_SECRET` from the environment. After seeding, log in with
-`owner@example.com` / `secret`.
+`SUPABASE_URL` from the environment or `backend/.env` (see
+`backend/.env.example`). Migrations and seeds need only `DATABASE_URL`.
 
-**Password rotation / lost-password recovery:**
+**Logging in locally:** login goes to a free "dev" Supabase project. Put its
+URL and publishable key in `frontend/.env.local` (see `frontend/.env.example`)
+and its URL in `backend/.env`, then sign in with a dev-project user that has
+the `menu_manager` role. Tests and CI never talk to Supabase.
 
-```bash
-OWNER_EMAIL=owner@example.com OWNER_PASSWORD=newpass OWNER_FORCE_RESET=1 \
-  uv run python -m pizzeria.seed_owner
-```
+**Supabase project setup (once per environment — dashboard settings, not in the repo):**
+
+1. Create the Supabase project.
+2. Auth → JWT signing keys: switch to **asymmetric keys** (ES256). FastAPI verifies tokens via the project's JWKS and rejects the legacy shared secret.
+3. Data API: switch **"Enable Data API" off**, and never add `pizzeria` to the exposed schemas (ADR 0002).
+4. Auth → Sign In / Providers: disable **"Allow new users to sign up"**.
+5. Auth → Users → Add user → Create new user (email + password, auto-confirm), then grant the role:
+   `UPDATE auth.users SET raw_app_meta_data = raw_app_meta_data || '{"role": "menu_manager"}' WHERE email = '<email>';`
+   The role is in the token from the next sign-in.
+
+**Production deployment runbook:**
+On every deploy, before starting the FastAPI process:
+
+1. `DATABASE_URL=<direct connection> uv run alembic upgrade head` — apply pending schema migrations over the **direct** connection.
+2. Start `uvicorn pizzeria.api.main:app` with `DATABASE_URL` set to the direct connection or the **session-mode pooler (port 5432)**. Never the transaction-mode pooler (6543): asyncpg needs prepared statements.
+
+Step 1 must complete before step 2 to avoid serving traffic against a stale schema.
+
+**Lost password (interim, until in-app recovery ships):** a Menu Manager deletes the user in Supabase → Auth → Users, recreates it (setup step 5), and grants `menu_manager` again.
 
 **Tests and linting:**
 

@@ -26,13 +26,11 @@ Branch naming: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`.
 cd backend
 uv sync
 uv run alembic upgrade head
-OWNER_EMAIL=owner@example.com OWNER_PASSWORD=secret uv run python -m pizzeria.seed_owner
 uv run python -m pizzeria.seed_pizzas          # optional: seed 7 sample pizzas
 uv run uvicorn pizzeria.api.main:app --reload   # http://localhost:8000
 ```
 
-**Dev credentials (after seeding):**
-- Admin login: `owner@example.com` / `secret`
+**Dev login:** there are no local credentials — log in with a user of the dev Supabase project that has `app_metadata.role = "menu_manager"` (see project setup below).
 - `seed_pizzas` is idempotent — safe to re-run; skips existing names.
 
 **Tests:**
@@ -48,38 +46,47 @@ uv run ruff check .                  # lint
 The integration suite auto-creates `pizzeria_test` on first run, applies `alembic upgrade head` once per session, and wraps each test in a SAVEPOINT that is rolled back at teardown — no manual DB setup needed.
 
 **Layer rules (enforce strictly):**
-- `domain/` — pure Python, no framework imports. Pizza aggregate, Money and Allergen value objects (Owner value object lands in step 08).
-- `application/` — use cases only. Depends on abstract `PizzaRepository` and `OwnerRepository` Protocols. No SQLAlchemy, no FastAPI.
-- `infrastructure/` — SQLAlchemy models, `SqlPizzaRepository`, JWT/password helpers. Implements `application/` ports.
-- `api/` — FastAPI routers, Pydantic schemas, dependency wiring. Calls use cases; never touches domain directly. **No CORS** — the frontend reaches the backend through a Next.js rewrite (same-origin from the browser). Cookies: `httpOnly`, `SameSite=Lax`, `Secure` set only when the request is HTTPS.
+- `domain/` — pure Python, no framework imports. Pizza aggregate, Money and Allergen value objects, `MenuManager`.
+- `application/` — use cases only. Depends on the abstract `PizzaRepository` Protocol. No SQLAlchemy, no FastAPI.
+- `infrastructure/` — SQLAlchemy models, `SqlPizzaRepository`, Supabase token verification (`security/supabase_jwt.py`). Implements `application/` ports.
+- `api/` — FastAPI routers, Pydantic schemas, dependency wiring. Calls use cases; never touches domain directly. **No CORS** — the frontend reaches the backend through a Next.js rewrite (same-origin from the browser). The backend sets no cookies; the Supabase session cookies (set by Next.js) are `httpOnly`, `SameSite=Lax`, `Secure` only over HTTPS.
 
 **API endpoints (conventions, see step 09):**
 - Public pizza routes (`GET /api/pizzas`, `GET /api/pizzas/{id}`) return only `available=true`.
 - Admin pizza routes are namespaced under `/api/admin/pizzas` (no `?all=true` query flag).
-- `POST /api/auth/login` is rate-limited via `slowapi` to 5 req/min/IP and sets the `session` cookie. `POST /api/auth/logout` clears it. `GET /api/auth/me` returns the current owner.
+- There are **no `/api/auth/*` routes**: login lives in Supabase Auth (ADR 0001). Admin routes require `Authorization: Bearer <Supabase access token>`; `api/deps.py` verifies it against the project JWKS (ES256/RS256, aud `authenticated`, iss `<SUPABASE_URL>/auth/v1`) and requires `app_metadata.role == "menu_manager"` (401 no/invalid/expired token, 403 wrong role; ADR 0003). Never authorize from `user_metadata`.
+- Tests sign tokens with a local ES256 key (`tests/_auth.py`) and override the `get_key_source` dependency — no network, no Supabase in CI.
 
 **DB / migrations:**
-Alembic ships in step 07 (alongside the SQLAlchemy models), not step 10. Step 10 only owns the owner seed script + the production migration runbook.
+App tables live in the private `pizzeria` schema (`MetaData(schema="pizzeria")`), never exposed by Supabase's Data API (ADR 0002). `alembic/env.py` only autogenerates for that schema. Migrations and seeds only need `DATABASE_URL` (`DatabaseSettings`).
 ```bash
 uv run alembic revision --autogenerate -m "<msg>"
 uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
+**Supabase project setup (once per environment — dashboard settings, not in the repo):**
+
+1. Create the Supabase project.
+2. Auth → JWT signing keys: switch to **asymmetric keys** (ES256). FastAPI verifies tokens via the project's JWKS and rejects the legacy shared secret.
+3. Data API: switch **"Enable Data API" off**, and never add `pizzeria` to the exposed schemas (ADR 0002).
+4. Auth → Sign In / Providers: disable **"Allow new users to sign up"**.
+5. Auth → Users → Add user → Create new user (email + password, auto-confirm), then grant the role:
+   `UPDATE auth.users SET raw_app_meta_data = raw_app_meta_data || '{"role": "menu_manager"}' WHERE email = '<email>';`
+   The role is in the token from the next sign-in.
+
 **Production deployment runbook:**
 On every deploy, before starting the FastAPI process:
 
-1. `uv run alembic upgrade head` — apply pending schema migrations.
-2. `OWNER_EMAIL=… OWNER_PASSWORD=… uv run python -m pizzeria.seed_owner` —
-   first deploy only; safe to re-run (no-op if owner exists).
-3. Password rotation / lost-password recovery:
-   `OWNER_EMAIL=… OWNER_PASSWORD=newpass OWNER_FORCE_RESET=1 uv run python -m pizzeria.seed_owner`
-4. Start `uvicorn pizzeria.api.main:app`.
+1. `DATABASE_URL=<direct connection> uv run alembic upgrade head` — apply pending schema migrations over the **direct** connection.
+2. Start `uvicorn pizzeria.api.main:app` with `DATABASE_URL` set to the direct connection or the **session-mode pooler (port 5432)**. Never the transaction-mode pooler (6543): asyncpg needs prepared statements.
 
-Step 1 must complete before step 4 to avoid serving traffic against a stale schema.
+Step 1 must complete before step 2 to avoid serving traffic against a stale schema.
+
+**Lost password (interim, until in-app recovery ships):** a Menu Manager deletes the user in Supabase → Auth → Users, recreates it (setup step 5), and grants `menu_manager` again.
 
 **Environment variables (backend):**
-`DATABASE_URL`, `JWT_SECRET`, `JWT_ALG` (default HS256), `JWT_TTL_MIN` (default 120), `OWNER_EMAIL`, `OWNER_PASSWORD`. Optional: `OWNER_FORCE_RESET=1` makes `python -m pizzeria.seed_owner` overwrite an existing owner's `password_hash` (used for rotation / lost-password recovery).
+`DATABASE_URL`, `SUPABASE_URL` (e.g. `https://<ref>.supabase.co`; the JWT issuer and JWKS URL derive from it). See `backend/.env.example`.
 
 ## Frontend (Next.js + TypeScript)
 
@@ -105,11 +112,13 @@ npm run build        # production build check
 - `src/lib/api.ts` — typed HTTP client wrapping `fetch` with `credentials: 'include'`. Uses relative URLs (`/api/...`) — same-origin via the Next.js rewrite. All API calls go through here.
 - `src/lib/api-types.ts` is **generated** from the backend's `/openapi.json` via `npm run types:gen` (uses `openapi-typescript`). `src/lib/types.ts` only re-exports / narrows the generated types. CI fails if `api-types.ts` is out of date.
 - Homepage (`src/app/page.tsx`) is a Next.js Server Component that fetches with `{ next: { tags: ['pizzas'], revalidate: 60 } }`. Admin create/edit/delete server actions call `revalidateTag('pizzas')` so edits show up immediately; the 60s ISR window is the fallback.
-- Admin routes (`src/app/admin/`) are client components gated by `src/proxy.ts` (checks httpOnly `session` cookie).
+- Admin routes (`src/app/admin/`) are gated by `src/proxy.ts`, which refreshes the Supabase session and redirects when `supabase.auth.getClaims()` finds no verified session. It is a convenience, not the security boundary — FastAPI checks every request.
+- Supabase session: `src/lib/supabase/server.ts` (`createSupabaseServerClient`, `authHeader`). Server-side only — never create a browser Supabase client. Cookies are forced `httpOnly` (`src/lib/supabase/config.ts`; `@supabase/ssr` defaults to `false`). Only the proxy refreshes sessions.
+- Login/logout are server actions in `src/app/admin/actions.ts` (`signInWithPassword` behind a 5/min/IP in-memory limiter; `signOut({ scope: 'local' })`). Admin fetches send `Authorization: Bearer` via `authHeader()`.
 - Tests live in `src/__tests__/` and use Vitest + React Testing Library + MSW for API mocking.
 
 **Environment variables (frontend):**
-`BACKEND_INTERNAL_URL` (e.g. `http://localhost:8000`) — consumed only by the Next.js server process. The browser always talks to the frontend origin; `next.config.mjs` rewrites `/api/*` to `BACKEND_INTERNAL_URL/api/*`. `NEXT_PUBLIC_*` API base is **not** used.
+`BACKEND_INTERNAL_URL` (e.g. `http://localhost:8000`), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` — all consumed only by the Next.js server process. The browser always talks to the frontend origin; `next.config.ts` rewrites `/api/*` to `BACKEND_INTERNAL_URL/api/*`. `NEXT_PUBLIC_*` variables are **not** used. See `frontend/.env.example`.
 
 ## Domain model (Pizza aggregate)
 
@@ -119,7 +128,7 @@ EU 14 allergens: `gluten crustaceans eggs fish peanuts soy milk nuts celery must
 
 Invariants are enforced in `backend/src/pizzeria/domain/` — never in the API or DB layer.
 
-**Owner aggregate** (introduced in step 08): frozen dataclass `Owner(id, email, password_hash)` in `backend/src/pizzeria/domain/owner.py`. The `application/ports/owner_repository.py` Protocol is the abstraction the `AuthenticateOwner` use case depends on — never the SQLAlchemy ORM.
+**MenuManager**: frozen dataclass `MenuManager(id, email)` in `backend/src/pizzeria/domain/menu_manager.py`, built from a verified Supabase token (`id` = `sub`). Anyone allowed to change the Menu — today the owner, later possibly staff. There is no owners table. Vocabulary lives in `CONTEXT.md`; decisions in `docs/adr/`.
 
 ## TDD discipline
 
