@@ -8,8 +8,3 @@ class DuplicatePizzaName(Exception):
 
     pass
 
-
-class InvalidCredentials(Exception):
-    """Raised when email or password is incorrect. Same type for both to prevent enumeration."""
-
-    pass

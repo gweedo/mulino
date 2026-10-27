@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from pizzeria.infrastructure.settings import get_settings
+from pizzeria.infrastructure.settings import get_database_settings
 
 
 def make_engine(database_url: str | None = None) -> AsyncEngine:
@@ -13,7 +13,7 @@ def make_engine(database_url: str | None = None) -> AsyncEngine:
 
     If no URL is supplied, reads DATABASE_URL from the environment via Settings.
     """
-    url = database_url or get_settings().DATABASE_URL
+    url = database_url or get_database_settings().DATABASE_URL
     return create_async_engine(url, future=True)
 
 

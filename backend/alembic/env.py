@@ -6,8 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from pizzeria.infrastructure.models import Base
-from pizzeria.infrastructure.settings import get_settings
+from pizzeria.infrastructure.models import SCHEMA, Base
+from pizzeria.infrastructure.settings import get_database_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -15,7 +15,7 @@ config = context.config
 
 # Override sqlalchemy.url from environment via Settings so the same env var
 # (DATABASE_URL) drives the app, the tests, and migrations alike.
-config.set_main_option("sqlalchemy.url", get_settings().DATABASE_URL)
+config.set_main_option("sqlalchemy.url", get_database_settings().DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -26,10 +26,13 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+
+
+def include_name(name, type_, parent_names) -> bool:  # type: ignore[no-untyped-def]
+    """Limit autogenerate to our schema; Supabase owns the others (auth, storage, ...)."""
+    if type_ == "schema":
+        return name == SCHEMA
+    return True
 
 
 def run_migrations_offline() -> None:
@@ -50,6 +53,8 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_schemas=True,
+        include_name=include_name,
     )
 
     with context.begin_transaction():
@@ -57,7 +62,12 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_schemas=True,
+        include_name=include_name,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

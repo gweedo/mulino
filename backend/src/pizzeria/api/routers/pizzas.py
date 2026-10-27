@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from pizzeria.api.deps import CurrentOwner, PizzaRepoDep
+from pizzeria.api.deps import CurrentMenuManager, PizzaRepoDep
 from pizzeria.api.schemas import PizzaIn, PizzaOut, PizzaUpdate
 from pizzeria.application.use_cases.create_pizza import CreatePizza
 from pizzeria.application.use_cases.delete_pizza import DeletePizza
@@ -46,14 +46,14 @@ async def get_pizza(pizza_id: UUID, repo: PizzaRepoDep) -> PizzaOut:
 
 
 @router.get("/admin/pizzas", response_model=list[PizzaOut])
-async def admin_list_pizzas(_owner: CurrentOwner, repo: PizzaRepoDep) -> list[PizzaOut]:
+async def admin_list_pizzas(_manager: CurrentMenuManager, repo: PizzaRepoDep) -> list[PizzaOut]:
     pizzas = await ListPizzas(repo).execute(only_available=False)
     return [_to_pizza_out(p) for p in pizzas]
 
 
 @router.post("/pizzas", response_model=PizzaOut, status_code=status.HTTP_201_CREATED)
 async def create_pizza(
-    body: PizzaIn, _owner: CurrentOwner, repo: PizzaRepoDep
+    body: PizzaIn, _manager: CurrentMenuManager, repo: PizzaRepoDep
 ) -> PizzaOut:
     pizza = await CreatePizza(repo).execute(
         body.name,
@@ -68,7 +68,7 @@ async def create_pizza(
 
 @router.put("/pizzas/{pizza_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_pizza(
-    pizza_id: UUID, body: PizzaUpdate, _owner: CurrentOwner, repo: PizzaRepoDep
+    pizza_id: UUID, body: PizzaUpdate, _manager: CurrentMenuManager, repo: PizzaRepoDep
 ) -> None:
     await UpdatePizza(repo).execute(
         pizza_id,
@@ -83,5 +83,5 @@ async def update_pizza(
 
 
 @router.delete("/pizzas/{pizza_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_pizza(pizza_id: UUID, _owner: CurrentOwner, repo: PizzaRepoDep) -> None:
+async def delete_pizza(pizza_id: UUID, _manager: CurrentMenuManager, repo: PizzaRepoDep) -> None:
     await DeletePizza(repo).execute(pizza_id)

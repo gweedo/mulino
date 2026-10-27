@@ -8,16 +8,6 @@ from uuid import UUID
 from pydantic import BaseModel, model_validator
 
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-class MeResponse(BaseModel):
-    id: UUID
-    email: str
-
-
 class MoneyOut(BaseModel):
     amount: Decimal
     currency: str

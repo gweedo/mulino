@@ -7,6 +7,7 @@ from sqlalchemy import (
     CHAR,
     CheckConstraint,
     DateTime,
+    MetaData,
     Numeric,
     String,
     func,
@@ -14,9 +15,12 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+# Private schema, never exposed by Supabase's Data API (ADR 0002).
+SCHEMA = "pizzeria"
+
 
 class Base(DeclarativeBase):
-    pass
+    metadata = MetaData(schema=SCHEMA)
 
 
 class PizzaORM(Base):
@@ -41,10 +45,3 @@ class PizzaORM(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-
-class OwnerORM(Base):
-    __tablename__ = "owners"
-
-    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True)
-    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String, nullable=False)
