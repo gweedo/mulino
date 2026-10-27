@@ -2,7 +2,7 @@
  * Typed HTTP client for browser-side (admin) API calls.
  * Uses relative URLs so Next.js rewrites /api/* → BACKEND_INTERNAL_URL/api/*.
  */
-import type { MeResponse, PizzaIn, PizzaOut, PizzaUpdate } from './types'
+import type { PizzaIn, PizzaOut, PizzaUpdate } from './types'
 
 const BASE = '/api'
 
@@ -27,16 +27,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
-
-// ── Auth ──────────────────────────────────────────────────────────────────
-export const login = (email: string, password: string) =>
-  request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
-
-export const logout = () =>
-  request<void>('/auth/logout', { method: 'POST' })
-
-export const me = () =>
-  request<MeResponse>('/auth/me')
 
 // ── Pizzas (public) ───────────────────────────────────────────────────────
 export const listPizzas = () =>

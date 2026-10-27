@@ -1,17 +1,15 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import type { PizzaOut } from '@/lib/types'
+import { authHeader } from '@/lib/supabase/server'
 import PizzaRow from './PizzaRow'
 import styles from './dashboard.module.css'
 
 async function fetchAdminPizzas(): Promise<PizzaOut[]> {
-  const store = await cookies()
-  const session = store.get('session')
   const backend = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:8000'
 
   try {
     const res = await fetch(`${backend}/api/admin/pizzas`, {
-      headers: session ? { Cookie: `session=${session.value}` } : {},
+      headers: await authHeader(),
       cache: 'no-store',
     })
     if (!res.ok) return []
