@@ -1,8 +1,7 @@
 from pizzeria.domain.allergen import Allergen
 from pizzeria.domain.money import Money
-from pizzeria.domain.owner import Owner
 from pizzeria.domain.pizza import Pizza
-from pizzeria.infrastructure.models import OwnerORM, PizzaORM
+from pizzeria.infrastructure.models import PizzaORM
 
 
 def pizza_to_orm(pizza: Pizza) -> PizzaORM:
@@ -40,6 +39,3 @@ def apply_pizza_to_orm(pizza: Pizza, orm: PizzaORM) -> None:
     orm.price_currency = pizza.price.currency
     orm.available = pizza.available
 
-
-def owner_from_orm(orm: OwnerORM) -> Owner:
-    return Owner(id=orm.id, email=orm.email, password_hash=orm.password_hash)

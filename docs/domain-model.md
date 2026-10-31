@@ -38,19 +38,19 @@ No 1169/2011:
 A pizza's allergen set must be a subset of these 14 values; anything outside
 the set is rejected at the domain layer.
 
-## Owner (value object)
+## MenuManager (value object)
 
-A frozen `Owner(id, email, password_hash)`. There is a single owner — the
-pizzeria proprietor. The `AuthenticateOwner` use case depends only on the
-abstract `OwnerRepository` protocol, never on the ORM directly, so
-authentication logic stays free of infrastructure concerns. The owner is
-created once via `python -m pizzeria.seed_owner` and can be rotated with
-the `OWNER_FORCE_RESET=1` flag.
+A frozen `MenuManager(id, email)`: a person allowed to change the Menu —
+today the pizzeria's owner, later possibly staff. Identity comes from
+Supabase Auth (`id` is the Supabase user id), so there is no owners table and
+no password in our code. Access is granted by the `menu_manager` role in the
+user's `app_metadata` ([ADR 0003](./adr/0003-menu-manager-role-claim.md)).
+Vocabulary is defined in the root `CONTEXT.md`.
 
 ## Public vs. admin visibility
 
 The public pizza endpoints (`GET /api/pizzas`, `GET /api/pizzas/:id`) return
-only pizzas with `available = true`. The owner toggles availability and
+only pizzas with `available = true`. A Menu Manager toggles availability and
 performs full create/edit/delete through the authenticated endpoints:
 `POST /api/pizzas`, `PUT /api/pizzas/:id`, `DELETE /api/pizzas/:id`. The
 admin list (`GET /api/admin/pizzas`) returns all pizzas regardless of

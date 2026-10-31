@@ -32,12 +32,12 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from alembic import command
-from pizzeria.infrastructure.settings import get_settings
+from pizzeria.infrastructure.settings import get_database_settings
 
 
 def _alembic_config(database_url: str) -> Config:
     cfg = Config("alembic.ini")
-    cfg.set_main_option("sqlalchemy.url", database_url)
+    cfg.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     return cfg
 
 
@@ -62,7 +62,7 @@ async def _create_db_if_missing(database_url: str) -> None:
 @pytest.fixture(scope="session")
 def _bootstrap_test_db() -> str:
     """Sync session-scoped bootstrap. Returns the resolved DATABASE_URL."""
-    url = get_settings().DATABASE_URL
+    url = get_database_settings().DATABASE_URL
     asyncio.run(_create_db_if_missing(url))
     command.upgrade(_alembic_config(url), "head")
     return url

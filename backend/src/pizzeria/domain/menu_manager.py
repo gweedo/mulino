@@ -3,15 +3,17 @@ from uuid import UUID
 
 
 @dataclass(frozen=True)
-class Owner:
+class MenuManager:
+    """A person allowed to change the Menu (see CONTEXT.md).
+
+    Identity comes from Supabase Auth: `id` is the Supabase user id (`sub` claim).
+    """
+
     id: UUID
     email: str
-    password_hash: str
 
     def __post_init__(self):
         if not self.email:
             raise ValueError("email must be non-empty")
         if "@" not in self.email:
             raise ValueError("email must contain '@'")
-        if not self.password_hash:
-            raise ValueError("password_hash must be non-empty")

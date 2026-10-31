@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { PizzaOut, MeResponse } from '@/lib/types'
+import type { PizzaOut } from '@/lib/types'
 
 export const mockPizza: PizzaOut = {
   id: 'abc-123',
@@ -11,21 +11,7 @@ export const mockPizza: PizzaOut = {
   available: true,
 }
 
-export const mockOwner: MeResponse = {
-  id: 'owner-1',
-  email: 'owner@example.com',
-}
-
 export const handlers = [
-  // Auth
-  http.post('/api/auth/login', () =>
-    HttpResponse.json({ detail: 'OK' }, { status: 200 }),
-  ),
-
-  http.post('/api/auth/logout', () => new HttpResponse(null, { status: 204 })),
-
-  http.get('/api/auth/me', () => HttpResponse.json(mockOwner)),
-
   // Public pizzas
   http.get('/api/pizzas', () => HttpResponse.json([mockPizza])),
 

@@ -47,6 +47,8 @@ export default function LoginForm() {
         const msg = err instanceof Error ? err.message : ''
         if (msg === '401') {
           setFormError('Email o password non corretti.')
+        } else if (msg === '429') {
+          setFormError('Troppi tentativi. Riprova tra un minuto.')
         } else {
           setFormError('Si è verificato un problema. Riprova.')
         }

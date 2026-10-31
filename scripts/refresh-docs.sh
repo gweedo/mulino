@@ -20,6 +20,7 @@ expected=(
   "roadmap.md"
   "development.md"
   "ci.md"
+  "supabase-setup.md"
 )
 
 missing=0

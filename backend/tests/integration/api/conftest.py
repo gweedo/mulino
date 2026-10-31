@@ -1,28 +1,33 @@
 """API integration test fixtures."""
 
 from collections.abc import AsyncIterator
-from uuid import uuid4
 
+import pytest
 import pytest_asyncio
+from cryptography.hazmat.primitives.asymmetric import ec
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pizzeria.api.deps import get_session
-from pizzeria.api.limiter import limiter
+from pizzeria.api.deps import get_key_source, get_session
 from pizzeria.api.main import create_app
-from pizzeria.infrastructure.models import OwnerORM
-from pizzeria.infrastructure.security.passwords import hash_password
+from tests._auth import make_key, sign_token
+
+
+@pytest.fixture
+def signing_key() -> ec.EllipticCurvePrivateKey:
+    """Stands in for the Supabase project's signing key; the app trusts its public half."""
+    return make_key()
 
 
 @pytest_asyncio.fixture
-async def app(session: AsyncSession):
-    limiter._storage.reset()  # isolate rate-limit counters between tests
+async def app(session: AsyncSession, signing_key: ec.EllipticCurvePrivateKey):
     _app = create_app()
 
     async def _override() -> AsyncIterator[AsyncSession]:
         yield session
 
     _app.dependency_overrides[get_session] = _override
+    _app.dependency_overrides[get_key_source] = lambda: lambda _token: signing_key.public_key()
     yield _app
     _app.dependency_overrides.clear()
 
@@ -35,26 +40,7 @@ async def client(app) -> AsyncIterator[AsyncClient]:
         yield c
 
 
-@pytest_asyncio.fixture
-async def test_owner(session: AsyncSession) -> dict:
-    plain_password = "secret123"
-    owner = OwnerORM(
-        id=uuid4(),
-        email="owner@pizzeria.test",
-        password_hash=hash_password(plain_password),
-    )
-    session.add(owner)
-    await session.flush()
-    return {"id": owner.id, "email": owner.email, "password": plain_password}
-
-
-@pytest_asyncio.fixture
-async def auth_cookie(client: AsyncClient, test_owner: dict) -> str:
-    resp = await client.post(
-        "/api/auth/login",
-        json={"email": test_owner["email"], "password": test_owner["password"]},
-    )
-    assert resp.status_code == 200
-    cookie = resp.cookies.get("session")
-    assert cookie is not None
-    return cookie
+@pytest.fixture
+def auth_headers(signing_key: ec.EllipticCurvePrivateKey) -> dict[str, str]:
+    """Bearer header for a signed-in Menu Manager."""
+    return {"Authorization": f"Bearer {sign_token(signing_key)}"}

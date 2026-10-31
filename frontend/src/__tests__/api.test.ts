@@ -1,10 +1,7 @@
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
-import { handlers, mockPizza, mockOwner } from './msw/handlers'
+import { handlers, mockPizza } from './msw/handlers'
 import {
-  login,
-  logout,
-  me,
   listPizzas,
   listAllPizzas,
   createPizza,
@@ -19,29 +16,16 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
-describe('auth', () => {
-  it('login resolves on 200', async () => {
-    await expect(login('owner@example.com', 'secret')).resolves.not.toThrow()
-  })
-
-  it('login throws ApiError on 401', async () => {
+describe('auth errors', () => {
+  it('admin calls throw ApiError with the status when unauthenticated', async () => {
     server.use(
-      http.post('/api/auth/login', () =>
-        HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 }),
+      http.get('/api/admin/pizzas', () =>
+        HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 }),
       ),
     )
-    const err = await login('owner@example.com', 'wrong').catch((e) => e)
+    const err = await listAllPizzas().catch((e) => e)
     expect(err).toBeInstanceOf(ApiError)
     expect(err.status).toBe(401)
-  })
-
-  it('logout resolves on 204', async () => {
-    await expect(logout()).resolves.toBeUndefined()
-  })
-
-  it('me returns the owner', async () => {
-    const result = await me()
-    expect(result).toEqual(mockOwner)
   })
 })
 

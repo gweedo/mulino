@@ -5,25 +5,27 @@ from __future__ import annotations
 import functools
 from collections.abc import AsyncGenerator
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import Cookie, Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pizzeria.application.ports.owner_repository import OwnerRepository
 from pizzeria.application.ports.pizza_repository import PizzaRepository
-from pizzeria.application.use_cases.authenticate_owner import AuthenticateOwner
-from pizzeria.domain.owner import Owner
+from pizzeria.domain.menu_manager import MenuManager
 from pizzeria.infrastructure.db import make_engine, make_session_factory
-from pizzeria.infrastructure.repositories.owner_repository import SqlOwnerRepository
 from pizzeria.infrastructure.repositories.pizza_repository import SqlPizzaRepository
-from pizzeria.infrastructure.security.jwt import (
+from pizzeria.infrastructure.security.supabase_jwt import (
     ExpiredTokenError,
     InvalidTokenError,
-    decode_token,
-    encode_token,
+    KeySource,
+    jwks_key_source,
+    verify_access_token,
 )
-from pizzeria.infrastructure.security.passwords import verify_password
 from pizzeria.infrastructure.settings import get_settings
+
+# Role granted in the Supabase dashboard via app_metadata (ADR 0003).
+MENU_MANAGER_ROLE = "menu_manager"
 
 _engine: object = None
 _factory: object = None
@@ -54,37 +56,29 @@ def get_pizza_repo(session: SessionDep) -> PizzaRepository:
     return SqlPizzaRepository(session)
 
 
-def get_owner_repo(session: SessionDep) -> OwnerRepository:
-    return SqlOwnerRepository(session)
-
-
 PizzaRepoDep = Annotated[PizzaRepository, Depends(get_pizza_repo)]
-OwnerRepoDep = Annotated[OwnerRepository, Depends(get_owner_repo)]
 
 
-def get_auth_use_case(repo: OwnerRepoDep) -> AuthenticateOwner:
-    s = get_settings()
-    bound_encode = functools.partial(
-        encode_token,
-        secret=s.JWT_SECRET,
-        algorithm=s.JWT_ALG,
-        ttl_minutes=s.JWT_TTL_MIN,
-    )
-    return AuthenticateOwner(repo, verify_password, bound_encode)
+@functools.cache
+def get_key_source() -> KeySource:
+    """Public keys of the Supabase project; one cached JWKS client per process."""
+    return jwks_key_source(get_settings().supabase_jwks_url)
 
 
-async def get_current_owner(
-    owner_repo: OwnerRepoDep,
-    session_cookie: Annotated[str | None, Cookie(alias="session")] = None,
-) -> Owner:
-    if session_cookie is None:
+_bearer = HTTPBearer(auto_error=False)
+
+
+def get_current_menu_manager(
+    key_source: Annotated[KeySource, Depends(get_key_source)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> MenuManager:
+    if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     try:
-        settings = get_settings()
-        payload = decode_token(
-            session_cookie,
-            secret=settings.JWT_SECRET,
-            algorithm=settings.JWT_ALG,
+        claims = verify_access_token(
+            credentials.credentials,
+            key_source=key_source,
+            issuer=get_settings().supabase_auth_issuer,
         )
     except ExpiredTokenError as exc:
         raise HTTPException(
@@ -95,18 +89,17 @@ async def get_current_owner(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session"
         ) from exc
 
-    email: str | None = payload.get("sub")
-    if not email:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
+    # app_metadata is admin-only; user_metadata is user-editable and never consulted.
+    app_metadata = claims.get("app_metadata") or {}
+    if app_metadata.get("role") != MENU_MANAGER_ROLE:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a menu manager")
 
-    owner = await owner_repo.get_by_email(email)
-    if owner is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    return owner
+    try:
+        return MenuManager(id=UUID(claims["sub"]), email=claims.get("email", ""))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session"
+        ) from exc
 
 
-CurrentOwner = Annotated[Owner, Depends(get_current_owner)]
-
-
-def cookie_secure(request: Request) -> bool:
-    return request.url.scheme == "https"
+CurrentMenuManager = Annotated[MenuManager, Depends(get_current_menu_manager)]
