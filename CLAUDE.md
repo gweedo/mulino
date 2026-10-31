@@ -65,7 +65,7 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
-**Supabase project setup (once per environment — dashboard settings, not in the repo):**
+**Supabase project setup (once per environment — dashboard settings, not in the repo; full walkthrough in `docs/supabase-setup.md`):**
 
 1. Create the Supabase project.
 2. Auth → JWT signing keys: switch to **asymmetric keys** (ES256). FastAPI verifies tokens via the project's JWKS and rejects the legacy shared secret.

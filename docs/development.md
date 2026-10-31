@@ -28,7 +28,7 @@ URL and publishable key in `frontend/.env.local` (see `frontend/.env.example`)
 and its URL in `backend/.env`, then sign in with a dev-project user that has
 the `menu_manager` role. Tests and CI never talk to Supabase.
 
-**Supabase project setup (once per environment — dashboard settings, not in the repo):**
+**Supabase project setup (once per environment — dashboard settings, not in the repo).** Full walkthrough with checks and troubleshooting: [Supabase setup](./supabase-setup.md).
 
 1. Create the Supabase project.
 2. Auth → JWT signing keys: switch to **asymmetric keys** (ES256). FastAPI verifies tokens via the project's JWKS and rejects the legacy shared secret.

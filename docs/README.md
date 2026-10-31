@@ -27,4 +27,5 @@ accepts changes through PRs only.
 - [Glossary](../CONTEXT.md) — the project's ubiquitous language.
 - [Roadmap](./roadmap.md) — what is built and what remains.
 - [Development](./development.md) — setup, commands, and the branch/PR workflow.
+- [Supabase setup](./supabase-setup.md) — step-by-step project configuration, from zero to a working login.
 - [CI](./ci.md) — how the test workflows ship alongside the code they test.
