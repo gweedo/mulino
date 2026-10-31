@@ -137,3 +137,17 @@ Red → green → refactor on every change. The test file for a module is writte
 ## Contacts (hardcoded)
 
 The public homepage contacts section uses the fixed pizzeria data from https://maps.app.goo.gl/DB4NzLKxTB1yXaxaA. Do not add a contacts admin UI — those values live in `src/components/Contacts.tsx`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues on gweedo/mulino (via `gh`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: glossary in `CONTEXT.md`, decisions in `docs/adr/`. See `docs/agents/domain.md`.
