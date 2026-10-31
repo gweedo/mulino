@@ -14,8 +14,11 @@ from pizzeria.infrastructure.settings import get_database_settings
 config = context.config
 
 # Override sqlalchemy.url from environment via Settings so the same env var
-# (DATABASE_URL) drives the app, the tests, and migrations alike.
-config.set_main_option("sqlalchemy.url", get_database_settings().DATABASE_URL)
+# (DATABASE_URL) drives the app, the tests, and migrations alike. configparser
+# treats % as interpolation, so escape it (URL-encoded passwords contain %).
+config.set_main_option(
+    "sqlalchemy.url", get_database_settings().DATABASE_URL.replace("%", "%%")
+)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

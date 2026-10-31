@@ -37,7 +37,7 @@ from pizzeria.infrastructure.settings import get_database_settings
 
 def _alembic_config(database_url: str) -> Config:
     cfg = Config("alembic.ini")
-    cfg.set_main_option("sqlalchemy.url", database_url)
+    cfg.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     return cfg
 
 
