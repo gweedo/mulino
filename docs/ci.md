@@ -7,8 +7,9 @@ Two GitHub Actions workflows guard the repository:
 - **`backend-tests`** — spins up a PostgreSQL 16 service, installs the
   backend with `uv`, runs `ruff check .`, then `pytest` (unit +
   integration). Defined in `.github/workflows/backend.yml`.
-- **`frontend-tests`** — installs the frontend with `npm ci`, runs the
-  ESLint linter, checks that the generated API types are in sync with
+- **`frontend-tests`** — installs the frontend with `npm ci`, fails on
+  high or critical `npm audit` findings in production dependencies, runs
+  the ESLint linter, checks that the generated API types are in sync with
   `openapi.json`, runs the Vitest suite (unit + MSW handler tests), and
   performs a production build. Defined in `.github/workflows/frontend.yml`.
 
