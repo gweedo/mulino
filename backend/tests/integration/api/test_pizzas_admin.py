@@ -121,7 +121,7 @@ async def test_create_pizza_returns_201(
     client: AsyncClient, auth_headers: dict[str, str]
 ) -> None:
     client.headers.update(auth_headers)
-    resp = await client.post("/api/pizzas", json=_PIZZA_IN)
+    resp = await client.post("/api/admin/pizzas", json=_PIZZA_IN)
     assert resp.status_code == 201
     body = resp.json()
     assert body["name"] == _PIZZA_IN["name"]
@@ -134,7 +134,7 @@ async def test_create_duplicate_name_returns_409(
 ) -> None:
     await _insert_pizza(session, name=_PIZZA_IN["name"])
     client.headers.update(auth_headers)
-    resp = await client.post("/api/pizzas", json=_PIZZA_IN)
+    resp = await client.post("/api/admin/pizzas", json=_PIZZA_IN)
     assert resp.status_code == 409
 
 
@@ -144,14 +144,75 @@ async def test_create_invalid_allergen_returns_422(
 ) -> None:
     client.headers.update(auth_headers)
     bad = {**_PIZZA_IN, "allergens": ["not-an-allergen"]}
-    resp = await client.post("/api/pizzas", json=bad)
+    resp = await client.post("/api/admin/pizzas", json=bad)
     assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_create_without_auth_returns_401(client: AsyncClient) -> None:
-    resp = await client.post("/api/pizzas", json=_PIZZA_IN)
+    resp = await client.post("/api/admin/pizzas", json=_PIZZA_IN)
     assert resp.status_code == 401
+
+
+# ── Get one ─────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_admin_get_returns_unavailable_pizza(
+    client: AsyncClient, session: AsyncSession, auth_headers: dict[str, str]
+) -> None:
+    p = await _insert_pizza(session, name="Hidden", available=False)
+    client.headers.update(auth_headers)
+    resp = await client.get(f"/api/admin/pizzas/{p.id}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["id"] == str(p.id)
+    assert body["name"] == "Hidden"
+    assert body["available"] is False
+
+
+@pytest.mark.asyncio
+async def test_admin_get_missing_returns_404(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
+    client.headers.update(auth_headers)
+    resp = await client.get(f"/api/admin/pizzas/{uuid4()}")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_admin_get_without_auth_returns_401(
+    client: AsyncClient, session: AsyncSession
+) -> None:
+    p = await _insert_pizza(session)
+    resp = await client.get(f"/api/admin/pizzas/{p.id}")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_admin_get_without_menu_manager_role_returns_403(
+    client: AsyncClient, session: AsyncSession, signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    p = await _insert_pizza(session)
+    token = sign_token(signing_key, role=None)
+    resp = await client.get(
+        f"/api/admin/pizzas/{p.id}", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert resp.status_code == 403
+
+
+# ── Public mutation routes are gone ─────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_public_routes_reject_mutations(
+    client: AsyncClient, session: AsyncSession, auth_headers: dict[str, str]
+) -> None:
+    p = await _insert_pizza(session)
+    client.headers.update(auth_headers)
+    assert (await client.post("/api/pizzas", json=_PIZZA_IN)).status_code == 405
+    assert (await client.put(f"/api/pizzas/{p.id}", json={"name": "X"})).status_code == 405
+    assert (await client.delete(f"/api/pizzas/{p.id}")).status_code == 405
 
 
 # ── Update ───────────────────────────────────────────────────────────────────
@@ -163,7 +224,7 @@ async def test_update_name_returns_204_and_reflects_in_admin_list(
 ) -> None:
     p = await _insert_pizza(session)
     client.headers.update(auth_headers)
-    resp = await client.put(f"/api/pizzas/{p.id}", json={"name": "Renamed Pizza"})
+    resp = await client.put(f"/api/admin/pizzas/{p.id}", json={"name": "Renamed Pizza"})
     assert resp.status_code == 204
     list_resp = await client.get("/api/admin/pizzas")
     names = [x["name"] for x in list_resp.json()]
@@ -176,7 +237,7 @@ async def test_update_available_false_hides_from_public(
 ) -> None:
     p = await _insert_pizza(session, available=True)
     client.headers.update(auth_headers)
-    await client.put(f"/api/pizzas/{p.id}", json={"available": False})
+    await client.put(f"/api/admin/pizzas/{p.id}", json={"available": False})
     public_resp = await client.get(f"/api/pizzas/{p.id}")
     assert public_resp.status_code == 404
     admin_resp = await client.get("/api/admin/pizzas")
@@ -190,7 +251,7 @@ async def test_update_price_missing_currency_returns_422(
 ) -> None:
     p = await _insert_pizza(session)
     client.headers.update(auth_headers)
-    resp = await client.put(f"/api/pizzas/{p.id}", json={"price_amount": "15.00"})
+    resp = await client.put(f"/api/admin/pizzas/{p.id}", json={"price_amount": "15.00"})
     assert resp.status_code == 422
 
 
@@ -199,7 +260,7 @@ async def test_update_missing_pizza_returns_404(
     client: AsyncClient, auth_headers: dict[str, str]
 ) -> None:
     client.headers.update(auth_headers)
-    resp = await client.put(f"/api/pizzas/{uuid4()}", json={"name": "Ghost"})
+    resp = await client.put(f"/api/admin/pizzas/{uuid4()}", json={"name": "Ghost"})
     assert resp.status_code == 404
 
 
@@ -208,7 +269,7 @@ async def test_update_without_auth_returns_401(
     client: AsyncClient, session: AsyncSession
 ) -> None:
     p = await _insert_pizza(session)
-    resp = await client.put(f"/api/pizzas/{p.id}", json={"name": "NoAuth"})
+    resp = await client.put(f"/api/admin/pizzas/{p.id}", json={"name": "NoAuth"})
     assert resp.status_code == 401
 
 
@@ -221,7 +282,7 @@ async def test_delete_returns_204_and_pizza_becomes_404(
 ) -> None:
     p = await _insert_pizza(session)
     client.headers.update(auth_headers)
-    resp = await client.delete(f"/api/pizzas/{p.id}")
+    resp = await client.delete(f"/api/admin/pizzas/{p.id}")
     assert resp.status_code == 204
     assert (await client.get(f"/api/pizzas/{p.id}")).status_code == 404
 
@@ -231,7 +292,7 @@ async def test_delete_missing_returns_404(
     client: AsyncClient, auth_headers: dict[str, str]
 ) -> None:
     client.headers.update(auth_headers)
-    resp = await client.delete(f"/api/pizzas/{uuid4()}")
+    resp = await client.delete(f"/api/admin/pizzas/{uuid4()}")
     assert resp.status_code == 404
 
 
@@ -240,5 +301,5 @@ async def test_delete_without_auth_returns_401(
     client: AsyncClient, session: AsyncSession
 ) -> None:
     p = await _insert_pizza(session)
-    resp = await client.delete(f"/api/pizzas/{p.id}")
+    resp = await client.delete(f"/api/admin/pizzas/{p.id}")
     assert resp.status_code == 401
