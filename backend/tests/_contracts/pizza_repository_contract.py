@@ -71,6 +71,46 @@ class PizzaRepositoryContract:
         available = await repo.list(only_available=True)
         assert {p.name for p in available} == {"A"}
 
+    # ── Menu order ──────────────────────────────────────────────────────────
+
+    async def test_list_returns_pizzas_in_the_order_they_were_added(
+        self, repo: PizzaRepository
+    ):
+        for name in ["Margherita", "Diavola", "Capricciosa"]:
+            await repo.add(_make_pizza(name))
+        assert [p.name for p in await repo.list()] == ["Margherita", "Diavola", "Capricciosa"]
+
+    async def test_reorder_changes_the_listed_order(self, repo: PizzaRepository):
+        a, b, c = _make_pizza("A"), _make_pizza("B"), _make_pizza("C")
+        for p in (a, b, c):
+            await repo.add(p)
+        await repo.reorder([c.id, a.id, b.id])
+        assert [p.name for p in await repo.list()] == ["C", "A", "B"]
+
+    async def test_only_available_list_keeps_the_menu_order(self, repo: PizzaRepository):
+        a, b = _make_pizza("A"), _make_pizza("B", available=False)
+        c = _make_pizza("C")
+        for p in (a, b, c):
+            await repo.add(p)
+        await repo.reorder([c.id, b.id, a.id])
+        assert [p.name for p in await repo.list(only_available=True)] == ["C", "A"]
+
+    async def test_a_pizza_added_after_a_reorder_goes_last(self, repo: PizzaRepository):
+        a, b = _make_pizza("A"), _make_pizza("B")
+        await repo.add(a)
+        await repo.add(b)
+        await repo.reorder([b.id, a.id])
+        await repo.add(_make_pizza("New"))
+        assert [p.name for p in await repo.list()] == ["B", "A", "New"]
+
+    async def test_update_keeps_the_pizza_in_place(self, repo: PizzaRepository):
+        a, b, c = _make_pizza("A"), _make_pizza("B"), _make_pizza("C")
+        for p in (a, b, c):
+            await repo.add(p)
+        a.rename("A2")
+        await repo.update(a)
+        assert [p.name for p in await repo.list()] == ["A2", "B", "C"]
+
     async def test_update_persists_changes(self, repo: PizzaRepository):
         pizza = _make_pizza("Original")
         await repo.add(pizza)

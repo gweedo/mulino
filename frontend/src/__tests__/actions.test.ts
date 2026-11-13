@@ -1,4 +1,9 @@
-import { loginAction, logoutAction, createPizzaAction } from '@/app/admin/actions'
+import {
+  loginAction,
+  logoutAction,
+  createPizzaAction,
+  reorderPizzasAction,
+} from '@/app/admin/actions'
 
 const { auth, headerStore, redirectMock } = vi.hoisted(() => ({
   auth: {
@@ -89,6 +94,37 @@ describe('admin mutations', () => {
     const [, init] = fetchMock.mock.calls[0]
     expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok-123')
     expect((init?.headers as Record<string, string>).Cookie).toBeUndefined()
+    fetchMock.mockRestore()
+  })
+})
+
+describe('reorderPizzasAction', () => {
+  it('sends the whole Menu Order to the admin endpoint', async () => {
+    auth.getSession.mockResolvedValueOnce({
+      data: { session: { access_token: 'tok-123' } },
+      error: null,
+    })
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await reorderPizzasAction(['c', 'a', 'b'])
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toMatch(/\/api\/admin\/pizzas\/order$/)
+    expect(init?.method).toBe('PUT')
+    expect(JSON.parse(String(init?.body))).toEqual({ pizza_ids: ['c', 'a', 'b'] })
+    expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok-123')
+    fetchMock.mockRestore()
+  })
+
+  it('throws the status when the backend rejects the order', async () => {
+    auth.getSession.mockResolvedValueOnce({ data: { session: null }, error: null })
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('{}', { status: 409 }))
+
+    await expect(reorderPizzasAction(['a'])).rejects.toThrow('409')
     fetchMock.mockRestore()
   })
 })

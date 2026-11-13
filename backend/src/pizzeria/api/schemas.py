@@ -32,6 +32,12 @@ class PizzaIn(BaseModel):
     price_currency: str
 
 
+class MenuOrderIn(BaseModel):
+    """Every pizza of the Menu, in the new order."""
+
+    pizza_ids: list[UUID]
+
+
 class PizzaUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
