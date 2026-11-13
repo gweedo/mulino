@@ -5,18 +5,21 @@ from uuid import UUID
 from sqlalchemy import (
     ARRAY,
     CHAR,
+    BigInteger,
     CheckConstraint,
     DateTime,
     MetaData,
     Numeric,
     String,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Private schema, never exposed by Supabase's Data API (ADR 0002).
 SCHEMA = "pizzeria"
+POSITION_SEQUENCE = "pizza_position_seq"
 
 
 class Base(DeclarativeBase):
@@ -38,6 +41,12 @@ class PizzaORM(Base):
     price_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     price_currency: Mapped[str] = mapped_column(CHAR(3), nullable=False)
     available: Mapped[bool] = mapped_column(nullable=False, default=True, server_default="true")
+    # Menu Order. New rows draw from a sequence, so they always land last (migration 0003).
+    position: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        server_default=text(f"nextval('{SCHEMA}.{POSITION_SEQUENCE}'::regclass)"),
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

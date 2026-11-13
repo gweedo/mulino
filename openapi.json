@@ -234,6 +234,45 @@
           }
         ]
       }
+    },
+    "/api/admin/pizzas/order": {
+      "put": {
+        "tags": [
+          "pizzas"
+        ],
+        "summary": "Reorder Menu",
+        "operationId": "reorder_menu_api_admin_pizzas_order_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuOrderIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -250,6 +289,24 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "MenuOrderIn": {
+        "properties": {
+          "pizza_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Pizza Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pizza_ids"
+        ],
+        "title": "MenuOrderIn",
+        "description": "Every pizza of the Menu, in the new order."
       },
       "MoneyOut": {
         "properties": {

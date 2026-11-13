@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from pizzeria.application.errors import DuplicatePizzaName, PizzaNotFound
+from pizzeria.domain.menu_order import InvalidMenuOrder
 
 
 async def _pizza_not_found_handler(request: Request, exc: PizzaNotFound) -> JSONResponse:
@@ -12,6 +13,11 @@ async def _pizza_not_found_handler(request: Request, exc: PizzaNotFound) -> JSON
 
 async def _duplicate_pizza_handler(request: Request, exc: DuplicatePizzaName) -> JSONResponse:
     return JSONResponse({"detail": "A pizza with this name already exists"}, status_code=409)
+
+
+async def _invalid_menu_order_handler(request: Request, exc: InvalidMenuOrder) -> JSONResponse:
+    # Almost always a stale admin view: a pizza was added or removed meanwhile.
+    return JSONResponse({"detail": str(exc)}, status_code=409)
 
 
 async def _value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
@@ -25,6 +31,7 @@ def create_app() -> FastAPI:
 
     app.add_exception_handler(PizzaNotFound, _pizza_not_found_handler)
     app.add_exception_handler(DuplicatePizzaName, _duplicate_pizza_handler)
+    app.add_exception_handler(InvalidMenuOrder, _invalid_menu_order_handler)
     app.add_exception_handler(ValueError, _value_error_handler)
 
     app.include_router(pizzas_router, prefix="/api", tags=["pizzas"])

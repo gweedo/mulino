@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import select
@@ -32,11 +33,20 @@ class SqlPizzaRepository(PizzaRepository):
         return pizza_from_orm(orm) if orm else None
 
     async def list(self, *, only_available: bool = False) -> list[Pizza]:
-        stmt = select(PizzaORM)
+        stmt = select(PizzaORM).order_by(PizzaORM.position, PizzaORM.id)
         if only_available:
             stmt = stmt.where(PizzaORM.available.is_(True))
         result = await self._session.execute(stmt)
         return [pizza_from_orm(orm) for orm in result.scalars().all()]
+
+    async def reorder(self, pizza_ids: Sequence[UUID]) -> None:
+        # New rows take their position from a sequence that is always ahead of
+        # 0..n-1, so pizzas added after a reorder still land at the end.
+        result = await self._session.execute(select(PizzaORM))
+        rows = {orm.id: orm for orm in result.scalars().all()}
+        for index, pizza_id in enumerate(pizza_ids):
+            rows[pizza_id].position = index
+        await self._session.flush()
 
     async def update(self, pizza: Pizza) -> None:
         orm = await self._session.get(PizzaORM, pizza.id)

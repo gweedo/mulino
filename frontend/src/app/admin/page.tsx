@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { PizzaOut } from '@/lib/types'
 import { authHeader } from '@/lib/supabase/server'
-import PizzaRow from './PizzaRow'
+import SortablePizzaList from './SortablePizzaList'
 import styles from './dashboard.module.css'
 
 async function fetchAdminPizzas(): Promise<PizzaOut[]> {
@@ -39,13 +39,7 @@ export default async function AdminDashboard() {
           </Link>
         </div>
       ) : (
-        <ul className={styles.list} role="list">
-          {pizzas.map((pizza) => (
-            <li key={pizza.id}>
-              <PizzaRow pizza={pizza} />
-            </li>
-          ))}
-        </ul>
+        <SortablePizzaList pizzas={pizzas} />
       )}
     </div>
   )

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from uuid import UUID
 
 from pizzeria.application.ports.pizza_repository import PizzaRepository
@@ -14,8 +15,12 @@ class InMemoryPizzaRepository(PizzaRepository):
     def __init__(self):
         self._pizzas: dict[UUID, Pizza] = {}
 
+    # dict preserves insertion order, which doubles as the Menu Order.
     async def add(self, pizza: Pizza) -> None:
         self._pizzas[pizza.id] = pizza
+
+    async def reorder(self, pizza_ids: Sequence[UUID]) -> None:
+        self._pizzas = {pid: self._pizzas[pid] for pid in pizza_ids}
 
     async def get(self, pizza_id: UUID) -> Pizza | None:
         return self._pizzas.get(pizza_id)

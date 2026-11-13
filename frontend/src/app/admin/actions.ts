@@ -75,6 +75,17 @@ export async function deletePizzaAction(id: string) {
   invalidatePizzas()
 }
 
+/** Saves the whole Menu Order; the backend answers 409 if the Menu changed meanwhile. */
+export async function reorderPizzasAction(pizzaIds: string[]) {
+  const res = await fetch(`${BACKEND}/api/admin/pizzas/order`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+    body: JSON.stringify({ pizza_ids: pizzaIds }),
+  })
+  if (!res.ok) throw new Error(`${res.status}`)
+  invalidatePizzas()
+}
+
 export async function loginAction(email: string, password: string) {
   const forwardedFor = (await headers()).get('x-forwarded-for') ?? ''
   const ip = forwardedFor.split(',')[0].trim() || 'unknown'

@@ -5,11 +5,12 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from pizzeria.api.deps import CurrentMenuManager, PizzaRepoDep
-from pizzeria.api.schemas import PizzaIn, PizzaOut, PizzaUpdate
+from pizzeria.api.schemas import MenuOrderIn, PizzaIn, PizzaOut, PizzaUpdate
 from pizzeria.application.use_cases.create_pizza import CreatePizza
 from pizzeria.application.use_cases.delete_pizza import DeletePizza
 from pizzeria.application.use_cases.get_pizza import GetPizza
 from pizzeria.application.use_cases.list_pizzas import ListPizzas
+from pizzeria.application.use_cases.reorder_menu import ReorderMenu
 from pizzeria.application.use_cases.update_pizza import UpdatePizza
 
 router = APIRouter()
@@ -49,6 +50,13 @@ async def get_pizza(pizza_id: UUID, repo: PizzaRepoDep) -> PizzaOut:
 async def admin_list_pizzas(_manager: CurrentMenuManager, repo: PizzaRepoDep) -> list[PizzaOut]:
     pizzas = await ListPizzas(repo).execute(only_available=False)
     return [_to_pizza_out(p) for p in pizzas]
+
+
+@router.put("/admin/pizzas/order", status_code=status.HTTP_204_NO_CONTENT)
+async def reorder_menu(
+    body: MenuOrderIn, _manager: CurrentMenuManager, repo: PizzaRepoDep
+) -> None:
+    await ReorderMenu(repo).execute(body.pizza_ids)
 
 
 @router.post("/pizzas", response_model=PizzaOut, status_code=status.HTTP_201_CREATED)

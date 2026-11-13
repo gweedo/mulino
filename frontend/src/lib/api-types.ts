@@ -58,6 +58,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/pizzas/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder Menu */
+        put: operations["reorder_menu_api_admin_pizzas_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -66,6 +83,14 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * MenuOrderIn
+         * @description Every pizza of the Menu, in the new order.
+         */
+        MenuOrderIn: {
+            /** Pizza Ids */
+            pizza_ids: string[];
         };
         /** MoneyOut */
         MoneyOut: {
@@ -309,6 +334,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PizzaOut"][];
+                };
+            };
+        };
+    };
+    reorder_menu_api_admin_pizzas_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuOrderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
