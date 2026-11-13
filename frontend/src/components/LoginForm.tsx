@@ -39,19 +39,16 @@ export default function LoginForm() {
     if (errors.email || errors.password) return
 
     startTransition(async () => {
-      try {
-        await loginAction(email.trim(), password)
+      const result = await loginAction(email.trim(), password)
+      if (result.ok) {
         router.push('/admin')
         router.refresh()
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : ''
-        if (msg === '401') {
-          setFormError('Email o password non corretti.')
-        } else if (msg === '429') {
-          setFormError('Troppi tentativi. Riprova tra un minuto.')
-        } else {
-          setFormError('Si è verificato un problema. Riprova.')
-        }
+      } else if (result.error.kind === 'invalid_credentials') {
+        setFormError('Email o password non corretti.')
+      } else if (result.error.kind === 'rate_limited') {
+        setFormError('Troppi tentativi. Riprova tra un minuto.')
+      } else {
+        setFormError('Si è verificato un problema. Riprova.')
       }
     })
   }

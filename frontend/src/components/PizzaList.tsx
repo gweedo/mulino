@@ -31,14 +31,18 @@ function AnimatedItem({ children, index }: AnimatedItemProps) {
 
 interface Props {
   pizzas: PizzaItem[]
+  /** The backend couldn't be reached: say so rather than show an empty Menu. */
+  unavailable?: boolean
 }
 
-export default function PizzaList({ pizzas }: Props) {
+export default function PizzaList({ pizzas, unavailable = false }: Props) {
   return (
     <section id="menu" className={styles.section} aria-label="Menu">
       <h2 className={styles.heading}>Menu</h2>
 
-      {pizzas.length === 0 ? (
+      {unavailable ? (
+        <p className={styles.empty}>Il menu non è disponibile al momento.</p>
+      ) : pizzas.length === 0 ? (
         <p className={styles.empty}>Nessuna pizza disponibile al momento.</p>
       ) : (
         <ul className={styles.list}>

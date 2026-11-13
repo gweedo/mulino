@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { errorMessage } from '@/lib/result'
 import type { PizzaOut } from '@/lib/types'
 import { toggleAvailabilityAction, deletePizzaAction } from './actions'
 import styles from './dashboard.module.css'
@@ -19,6 +20,7 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
   const [deleting, startDelete] = useTransition()
   const [confirming, setConfirming] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [toggleError, setToggleError] = useState<string | null>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const bodyId = useId()
@@ -28,8 +30,14 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
   }, [confirming])
 
   function handleToggle() {
+    setToggleError(null)
     startToggle(async () => {
-      await toggleAvailabilityAction(pizza.id, !pizza.available)
+      const result = await toggleAvailabilityAction(pizza.id, !pizza.available)
+      if (!result.ok) {
+        if (result.error.kind === 'unauthorized') router.push('/admin/login')
+        else setToggleError(errorMessage(result.error.kind, 'toggle'))
+        return
+      }
       router.refresh()
     })
   }
@@ -46,10 +54,10 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
   function handleConfirmDelete() {
     setDeleteError(null)
     startDelete(async () => {
-      try {
-        await deletePizzaAction(pizza.id)
-      } catch {
-        setDeleteError('Eliminazione non riuscita. Riprova.')
+      const result = await deletePizzaAction(pizza.id)
+      if (!result.ok) {
+        if (result.error.kind === 'unauthorized') router.push('/admin/login')
+        else setDeleteError(errorMessage(result.error.kind, 'delete'))
         return
       }
       dialogRef.current?.close()
@@ -99,6 +107,12 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
           Elimina
         </button>
       </div>
+
+      {toggleError && (
+        <p className={styles.orderError} role="alert">
+          {toggleError}
+        </p>
+      )}
 
       {confirming && (
         <dialog

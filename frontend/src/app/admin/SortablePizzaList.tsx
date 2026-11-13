@@ -20,6 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { errorMessage } from '@/lib/result'
 import type { PizzaOut } from '@/lib/types'
 import { reorderPizzasAction } from './actions'
 import PizzaRow from './PizzaRow'
@@ -111,11 +112,14 @@ export default function SortablePizzaList({ pizzas }: { pizzas: PizzaOut[] }) {
     setOrder(next)
     setError(null)
     startSaving(async () => {
-      try {
-        await reorderPizzasAction(next)
-      } catch {
+      const result = await reorderPizzasAction(next)
+      if (!result.ok) {
         setOrder(previous)
-        setError('Non è stato possibile salvare il nuovo ordine. Riprova.')
+        if (result.error.kind === 'unauthorized') {
+          router.push('/admin/login')
+          return
+        }
+        setError(errorMessage(result.error.kind, 'reorder'))
       }
       router.refresh()
     })

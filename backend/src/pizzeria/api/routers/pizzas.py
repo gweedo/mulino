@@ -59,7 +59,15 @@ async def reorder_menu(
     await ReorderMenu(repo).execute(body.pizza_ids)
 
 
-@router.post("/pizzas", response_model=PizzaOut, status_code=status.HTTP_201_CREATED)
+@router.get("/admin/pizzas/{pizza_id}", response_model=PizzaOut)
+async def admin_get_pizza(
+    pizza_id: UUID, _manager: CurrentMenuManager, repo: PizzaRepoDep
+) -> PizzaOut:
+    pizza = await GetPizza(repo).execute(pizza_id, only_available=False)
+    return _to_pizza_out(pizza)
+
+
+@router.post("/admin/pizzas", response_model=PizzaOut, status_code=status.HTTP_201_CREATED)
 async def create_pizza(
     body: PizzaIn, _manager: CurrentMenuManager, repo: PizzaRepoDep
 ) -> PizzaOut:
@@ -74,7 +82,7 @@ async def create_pizza(
     return _to_pizza_out(pizza)
 
 
-@router.put("/pizzas/{pizza_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/admin/pizzas/{pizza_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_pizza(
     pizza_id: UUID, body: PizzaUpdate, _manager: CurrentMenuManager, repo: PizzaRepoDep
 ) -> None:
@@ -90,6 +98,6 @@ async def update_pizza(
     )
 
 
-@router.delete("/pizzas/{pizza_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/admin/pizzas/{pizza_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pizza(pizza_id: UUID, _manager: CurrentMenuManager, repo: PizzaRepoDep) -> None:
     await DeletePizza(repo).execute(pizza_id)

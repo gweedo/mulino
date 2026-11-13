@@ -74,8 +74,8 @@ npm run build        # production build check
 npm run types:gen    # regenerate src/lib/api-types.ts from ../openapi.json
 ```
 
-The frontend reaches the backend through a same-origin rewrite, so the
-browser only ever talks to `http://localhost:3000`. Set
+Only the Next.js server calls the backend (through `src/lib/backend.ts`),
+so the browser only ever talks to `http://localhost:3000`. Set
 `BACKEND_INTERNAL_URL` if the backend runs elsewhere (default:
 `http://localhost:8000`).
 

@@ -2,16 +2,20 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { allergenLabel } from '@/lib/allergens'
-import type { PizzaOut } from '@/lib/types'
-import type { PizzaFormValues } from '@/app/admin/actions'
+import { errorMessage, type Result } from '@/lib/result'
+import type { PizzaIn, PizzaOut } from '@/lib/types'
 import styles from './PizzaForm.module.css'
 
 const ALL_ALLERGENS = Object.keys(allergenLabel)
 
+/** What the form submits: a whole pizza, plus availability when editing. */
+export type PizzaFormValues = PizzaIn & { available?: boolean }
+
 interface PizzaFormProps {
   initial?: PizzaOut
-  action: (data: PizzaFormValues) => Promise<void>
+  action: (data: PizzaFormValues) => Promise<Result<unknown>>
 }
 
 interface FieldErrors {
@@ -22,6 +26,7 @@ interface FieldErrors {
 }
 
 export default function PizzaForm({ initial, action }: PizzaFormProps) {
+  const router = useRouter()
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [ingredients, setIngredients] = useState(
@@ -83,12 +88,14 @@ export default function PizzaForm({ initial, action }: PizzaFormProps) {
     }
 
     startTransition(async () => {
-      try {
-        await action(payload)
-      } catch (err) {
-        setServerError(
-          err instanceof Error ? err.message : 'Si è verificato un errore. Riprova.',
-        )
+      const result = await action(payload)
+      if (result.ok) {
+        router.push('/admin')
+        router.refresh()
+      } else if (result.error.kind === 'unauthorized') {
+        router.push('/admin/login')
+      } else {
+        setServerError(errorMessage(result.error.kind, 'save'))
       }
     })
   }

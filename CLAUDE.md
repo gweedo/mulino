@@ -49,11 +49,11 @@ Point `DATABASE_URL` at `pizzeria_test` for the tests (CI does this; the devcont
 - `domain/` — pure Python, no framework imports. Pizza aggregate, Money and Allergen value objects, `MenuManager`.
 - `application/` — use cases only. Depends on the abstract `PizzaRepository` Protocol. No SQLAlchemy, no FastAPI.
 - `infrastructure/` — SQLAlchemy models, `SqlPizzaRepository`, Supabase token verification (`security/supabase_jwt.py`). Implements `application/` ports.
-- `api/` — FastAPI routers, Pydantic schemas, dependency wiring. Calls use cases; never touches domain directly. **No CORS** — the frontend reaches the backend through a Next.js rewrite (same-origin from the browser). The backend sets no cookies; the Supabase session cookies (set by Next.js) are `httpOnly`, `SameSite=Lax`, `Secure` only over HTTPS.
+- `api/` — FastAPI routers, Pydantic schemas, dependency wiring. Calls use cases; never touches domain directly. **No CORS** — only the Next.js server calls FastAPI (via `src/lib/backend.ts`); the browser never does (ADR 0004). The backend sets no cookies; the Supabase session cookies (set by Next.js) are `httpOnly`, `SameSite=Lax`, `Secure` only over HTTPS.
 
 **API endpoints (conventions, see step 09):**
 - Public pizza routes (`GET /api/pizzas`, `GET /api/pizzas/{id}`) return only `available=true`.
-- Admin pizza routes are namespaced under `/api/admin/pizzas` (no `?all=true` query flag).
+- Admin pizza routes are all namespaced under `/api/admin/pizzas`: list, `GET/PUT/DELETE /{id}`, `POST`, `PUT /order` (no `?all=true` query flag).
 - There are **no `/api/auth/*` routes**: login lives in Supabase Auth (ADR 0001). Admin routes require `Authorization: Bearer <Supabase access token>`; `api/deps.py` verifies it against the project JWKS (ES256/RS256, aud `authenticated`, iss `<SUPABASE_URL>/auth/v1`) and requires `app_metadata.role == "menu_manager"` (401 no/invalid/expired token, 403 wrong role; ADR 0003). Never authorize from `user_metadata`.
 - Tests sign tokens with a local ES256 key (`tests/_auth.py`) and override the `get_key_source` dependency — no network, no Supabase in CI.
 
@@ -109,16 +109,17 @@ npm run build        # production build check
 - `middleware.ts` → **`proxy.ts`**. The file is `src/proxy.ts` and exports `export function proxy(...)`. The word "middleware" no longer exists in Next.js 16 — it is called **Proxy**. Do not create or reference `middleware.ts`.
 
 **Key conventions:**
-- `src/lib/api.ts` — typed HTTP client wrapping `fetch` with `credentials: 'include'`. Uses relative URLs (`/api/...`) — same-origin via the Next.js rewrite. All API calls go through here.
+- `src/lib/backend.ts` (`server-only`) — the **only** module that calls FastAPI. Owns the base URL, the Bearer token (`authHeader()`), status → error kind, and `pizzas` tag invalidation after successful mutations. Every function returns a `Result<T>` (`src/lib/result.ts`): `{ ok: true, data } | { ok: false, error: { kind } }`, kind ∈ `unauthorized forbidden not_found conflict validation unavailable`. Never `fetch` FastAPI anywhere else. Tested with MSW at `BACKEND_INTERNAL_URL`.
+- Server actions return results and never throw on purpose (Next.js may strip thrown messages); components branch on `error.kind`, show `errorMessage(kind, operation)` (Italian; FastAPI's English `detail` is never shown), and go to `/admin/login` on `unauthorized`. Saves navigate client-side on `ok` — no `redirect()` inside actions that return results.
 - `src/lib/api-types.ts` is **generated** from the backend's `/openapi.json` via `npm run types:gen` (uses `openapi-typescript`). `src/lib/types.ts` only re-exports / narrows the generated types. CI fails if `api-types.ts` is out of date.
-- Homepage (`src/app/page.tsx`) is a Next.js Server Component that fetches with `{ next: { tags: ['pizzas'], revalidate: 60 } }`. Admin create/edit/delete server actions call `revalidateTag('pizzas')` so edits show up immediately; the 60s ISR window is the fallback.
+- Homepage (`src/app/page.tsx`) is a Server Component reading `listMenu()` (tag `pizzas`, `revalidate: 60`). `backend.ts` invalidates the tag after every successful mutation so edits show up immediately; the 60s ISR window is the fallback. A failed read shows "menu non disponibile", never an empty menu.
 - Admin routes (`src/app/admin/`) are gated by `src/proxy.ts`, which refreshes the Supabase session and redirects when `supabase.auth.getClaims()` finds no verified session. It is a convenience, not the security boundary — FastAPI checks every request.
 - Supabase session: `src/lib/supabase/server.ts` (`createSupabaseServerClient`, `authHeader`). Server-side only — never create a browser Supabase client. Cookies are forced `httpOnly` (`src/lib/supabase/config.ts`; `@supabase/ssr` defaults to `false`). Only the proxy refreshes sessions.
-- Login/logout are server actions in `src/app/admin/actions.ts` (`signInWithPassword` behind a 5/min/IP in-memory limiter; `signOut({ scope: 'local' })`). Admin fetches send `Authorization: Bearer` via `authHeader()`.
+- Login/logout are server actions in `src/app/admin/actions.ts` (`signInWithPassword` behind a 5/min/IP in-memory limiter; `signOut({ scope: 'local' })`). Admin calls send `Authorization: Bearer` via `authHeader()`, inside `backend.ts`.
 - Tests live in `src/__tests__/` and use Vitest + React Testing Library + MSW for API mocking.
 
 **Environment variables (frontend):**
-`BACKEND_INTERNAL_URL` (e.g. `http://localhost:8000`), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` — all consumed only by the Next.js server process. The browser always talks to the frontend origin; `next.config.ts` rewrites `/api/*` to `BACKEND_INTERNAL_URL/api/*`. `NEXT_PUBLIC_*` variables are **not** used. See `frontend/.env.example`.
+`BACKEND_INTERNAL_URL` (e.g. `http://localhost:8000`), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` — all consumed only by the Next.js server process. The browser only talks to the frontend origin; there is **no `/api` rewrite** — FastAPI need only be reachable from the Next.js server (ADR 0004). `NEXT_PUBLIC_*` variables are **not** used. See `frontend/.env.example`.
 
 ## Domain model (Pizza aggregate)
 

@@ -1,6 +1,9 @@
 import { http, HttpResponse } from 'msw'
 import type { PizzaOut } from '@/lib/types'
 
+/** Where src/lib/backend.ts sends requests when BACKEND_INTERNAL_URL is unset. */
+export const BACKEND = 'http://localhost:8000'
+
 export const mockPizza: PizzaOut = {
   id: 'abc-123',
   name: 'Margherita',
@@ -11,12 +14,19 @@ export const mockPizza: PizzaOut = {
   available: true,
 }
 
+/** Happy-path FastAPI routes; tests override them with `server.use(...)` for failures. */
 export const handlers = [
-  // Public pizzas
-  http.get('/api/pizzas', () => HttpResponse.json([mockPizza])),
+  http.get(`${BACKEND}/api/pizzas`, () => HttpResponse.json([mockPizza])),
 
-  // Admin pizza create (POST /api/pizzas, auth required)
-  http.post('/api/pizzas', async ({ request }) => {
+  http.get(`${BACKEND}/api/admin/pizzas`, () => HttpResponse.json([mockPizza])),
+
+  http.get(`${BACKEND}/api/admin/pizzas/:id`, ({ params }) =>
+    params.id === mockPizza.id
+      ? HttpResponse.json(mockPizza)
+      : HttpResponse.json({ detail: 'Pizza not found' }, { status: 404 }),
+  ),
+
+  http.post(`${BACKEND}/api/admin/pizzas`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>
     const created: PizzaOut = {
       id: 'new-456',
@@ -24,18 +34,15 @@ export const handlers = [
       description: body.description as string,
       ingredients: body.ingredients as string[],
       allergens: body.allergens as string[],
-      price: { amount: body.price_amount as string, currency: 'EUR' },
+      price: { amount: String(body.price_amount), currency: body.price_currency as string },
       available: true,
     }
     return HttpResponse.json(created, { status: 201 })
   }),
 
-  // Admin pizza update (PUT /api/pizzas/:id → 204 no content)
-  http.put('/api/pizzas/:id', () => new HttpResponse(null, { status: 204 })),
+  http.put(`${BACKEND}/api/admin/pizzas/order`, () => new HttpResponse(null, { status: 204 })),
 
-  // Admin pizza delete (DELETE /api/pizzas/:id → 204 no content)
-  http.delete('/api/pizzas/:id', () => new HttpResponse(null, { status: 204 })),
+  http.put(`${BACKEND}/api/admin/pizzas/:id`, () => new HttpResponse(null, { status: 204 })),
 
-  // Admin list (GET /api/admin/pizzas)
-  http.get('/api/admin/pizzas', () => HttpResponse.json([mockPizza])),
+  http.delete(`${BACKEND}/api/admin/pizzas/:id`, () => new HttpResponse(null, { status: 204 })),
 ]

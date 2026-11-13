@@ -12,6 +12,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // The real entry throws outside React Server Components; tests run backend code directly.
+      'server-only': path.resolve(__dirname, './node_modules/server-only/empty.js'),
     },
   },
 })

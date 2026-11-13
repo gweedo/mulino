@@ -52,6 +52,6 @@ Vocabulary is defined in the root `CONTEXT.md`.
 The public pizza endpoints (`GET /api/pizzas`, `GET /api/pizzas/:id`) return
 only pizzas with `available = true`. A Menu Manager toggles availability and
 performs full create/edit/delete through the authenticated endpoints:
-`POST /api/pizzas`, `PUT /api/pizzas/:id`, `DELETE /api/pizzas/:id`. The
-admin list (`GET /api/admin/pizzas`) returns all pizzas regardless of
-availability.
+`POST /api/admin/pizzas`, `PUT /api/admin/pizzas/:id`,
+`DELETE /api/admin/pizzas/:id`. The admin reads (`GET /api/admin/pizzas`,
+`GET /api/admin/pizzas/:id`) return pizzas regardless of availability.

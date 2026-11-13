@@ -10,8 +10,8 @@ The codebase is a monorepo with two independent deployable units. The
 **frontend** is a Next.js 16 app (App Router, TypeScript). The **backend**
 is a FastAPI service (Python 3.12) backed by Supabase Postgres, organised in
 DDD-lite layers. The two communicate over HTTP only and never import from
-each other's source tree; in the browser they share an origin via a Next.js
-rewrite, so no CORS configuration is needed.
+each other's source tree; only the Next.js server calls FastAPI, so the
+browser never does and no CORS configuration is needed.
 
 Everything is built test-first. The backend has unit tests (pure domain and
 application logic) and integration tests against a real Postgres instance;

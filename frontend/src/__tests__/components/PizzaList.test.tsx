@@ -54,4 +54,10 @@ describe('PizzaList', () => {
     render(<PizzaList pizzas={[basePizza]} />)
     expect(screen.getByText('Classica e senza tempo.')).toBeInTheDocument()
   })
+
+  it('says the menu is unavailable instead of showing an empty menu', () => {
+    render(<PizzaList pizzas={[]} unavailable />)
+    expect(screen.getByText(/il menu non è disponibile al momento/i)).toBeInTheDocument()
+    expect(screen.queryByText(/nessuna pizza disponibile/i)).not.toBeInTheDocument()
+  })
 })
