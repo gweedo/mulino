@@ -1,105 +1,63 @@
 'use server'
 
-import { revalidateTag, updateTag } from 'next/cache'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import * as backend from '@/lib/backend'
 import { createRateLimiter } from '@/lib/rate-limit'
-import { authHeader, createSupabaseServerClient } from '@/lib/supabase/server'
+import type { Result } from '@/lib/result'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import type { PizzaIn, PizzaOut, PizzaUpdate } from '@/lib/types'
 
-const BACKEND = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:8000'
+// Expected failures are return values, never thrown: Next.js may strip thrown
+// messages in production, and the components branch on `error.kind`.
 
-/** Shape that PizzaForm always submits. */
-export interface PizzaFormValues {
-  name: string
-  description: string
-  ingredients: string[]
-  allergens: string[]
-  price_amount: string
-  price_currency: string
-  available?: boolean
+export async function createPizzaAction(input: PizzaIn): Promise<Result<PizzaOut>> {
+  return backend.createPizza(input)
 }
+
+export async function updatePizzaAction(id: string, patch: PizzaUpdate): Promise<Result<void>> {
+  return backend.updatePizza(id, patch)
+}
+
+export async function toggleAvailabilityAction(
+  id: string,
+  available: boolean,
+): Promise<Result<void>> {
+  return backend.updatePizza(id, { available })
+}
+
+export async function deletePizzaAction(id: string): Promise<Result<void>> {
+  return backend.deletePizza(id)
+}
+
+/** Saves the whole Menu Order; `conflict` means the Menu changed meanwhile. */
+export async function reorderPizzasAction(pizzaIds: string[]): Promise<Result<void>> {
+  return backend.rearrangeMenu(pizzaIds)
+}
+
+// ── Login / logout ───────────────────────────────────────────────────────────
+
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; error: { kind: 'invalid_credentials' | 'rate_limited' | 'unavailable' } }
 
 // Same budget the backend's slowapi limit used to enforce: 5 attempts/min/IP.
 // Supabase's own limit counts per IP too, and every call comes from this server.
 const loginLimiter = createRateLimiter({ limit: 5, windowMs: 60_000 })
 
-function invalidatePizzas() {
-  updateTag('pizzas')
-  revalidateTag('pizzas', 'seconds')
-}
-
-export async function createPizzaAction(data: PizzaFormValues) {
-  const res = await fetch(`${BACKEND}/api/pizzas`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `${res.status}`)
-  }
-  invalidatePizzas()
-  redirect('/admin')
-}
-
-export async function updatePizzaAction(id: string, data: PizzaFormValues) {
-  const res = await fetch(`${BACKEND}/api/pizzas/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || `${res.status}`)
-  }
-  invalidatePizzas()
-  redirect('/admin')
-}
-
-export async function toggleAvailabilityAction(id: string, available: boolean) {
-  const res = await fetch(`${BACKEND}/api/pizzas/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
-    body: JSON.stringify({ available }),
-  })
-  if (!res.ok) throw new Error(`${res.status}`)
-  invalidatePizzas()
-}
-
-export async function deletePizzaAction(id: string) {
-  const res = await fetch(`${BACKEND}/api/pizzas/${id}`, {
-    method: 'DELETE',
-    headers: await authHeader(),
-  })
-  if (!res.ok) throw new Error(`${res.status}`)
-  invalidatePizzas()
-}
-
-/** Saves the whole Menu Order; the backend answers 409 if the Menu changed meanwhile. */
-export async function reorderPizzasAction(pizzaIds: string[]) {
-  const res = await fetch(`${BACKEND}/api/admin/pizzas/order`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
-    body: JSON.stringify({ pizza_ids: pizzaIds }),
-  })
-  if (!res.ok) throw new Error(`${res.status}`)
-  invalidatePizzas()
-}
-
-export async function loginAction(email: string, password: string) {
+export async function loginAction(email: string, password: string): Promise<LoginResult> {
   const forwardedFor = (await headers()).get('x-forwarded-for') ?? ''
   const ip = forwardedFor.split(',')[0].trim() || 'unknown'
-  if (!loginLimiter.allow(ip)) throw new Error('429')
+  if (!loginLimiter.allow(ip)) return { ok: false, error: { kind: 'rate_limited' } }
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) {
-    if (error.code === 'invalid_credentials') throw new Error('401')
-    throw new Error(`${error.status ?? 500}`)
+    const kind = error.code === 'invalid_credentials' ? 'invalid_credentials' : 'unavailable'
+    return { ok: false, error: { kind } }
   }
-  // No redirect() here — redirect() throws a special pseudo-error that gets
-  // swallowed by the try-catch in LoginForm's useTransition. The client
-  // navigates to /admin after this action resolves successfully.
+  // The client navigates to /admin on { ok: true }.
+  return { ok: true }
 }
 
 export async function logoutAction() {

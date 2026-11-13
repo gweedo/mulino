@@ -3,10 +3,10 @@ import SortablePizzaList from '@/app/admin/SortablePizzaList'
 import * as actions from '@/app/admin/actions'
 import type { PizzaOut } from '@/lib/types'
 
-const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }))
+const { refreshMock, pushMock } = vi.hoisted(() => ({ refreshMock: vi.fn(), pushMock: vi.fn() }))
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: refreshMock }),
+  useRouter: () => ({ push: pushMock, refresh: refreshMock }),
 }))
 
 vi.mock('@/app/admin/actions', () => ({
@@ -84,7 +84,7 @@ describe('SortablePizzaList', () => {
   })
 
   it('moves a pizza with the keyboard and saves the new order', async () => {
-    reorderPizzasAction.mockResolvedValue(undefined)
+    reorderPizzasAction.mockResolvedValue({ ok: true, data: undefined })
     render(<SortablePizzaList pizzas={menu} />)
 
     await moveDownOnce('Margherita')
@@ -94,13 +94,33 @@ describe('SortablePizzaList', () => {
     await waitFor(() => expect(refreshMock).toHaveBeenCalled())
   })
 
-  it('puts the pizzas back and explains when saving fails', async () => {
-    reorderPizzasAction.mockRejectedValue(new Error('409'))
+  it('puts the pizzas back and explains when the Menu changed meanwhile', async () => {
+    reorderPizzasAction.mockResolvedValue({ ok: false, error: { kind: 'conflict' } })
     render(<SortablePizzaList pizzas={menu} />)
 
     await moveDownOnce('Margherita')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/ordine/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/cambiato nel frattempo/i)
     expect(rowNames()).toEqual(['Margherita', 'Diavola', 'Capricciosa'])
+    await waitFor(() => expect(refreshMock).toHaveBeenCalled())
+  })
+
+  it('puts the pizzas back and explains when the backend is unreachable', async () => {
+    reorderPizzasAction.mockResolvedValue({ ok: false, error: { kind: 'unavailable' } })
+    render(<SortablePizzaList pizzas={menu} />)
+
+    await moveDownOnce('Margherita')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/non è raggiungibile/i)
+    expect(rowNames()).toEqual(['Margherita', 'Diavola', 'Capricciosa'])
+  })
+
+  it('goes to login when the session has expired', async () => {
+    reorderPizzasAction.mockResolvedValue({ ok: false, error: { kind: 'unauthorized' } })
+    render(<SortablePizzaList pizzas={menu} />)
+
+    await moveDownOnce('Margherita')
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/admin/login'))
   })
 })

@@ -1,26 +1,13 @@
 import Link from 'next/link'
-import type { PizzaOut } from '@/lib/types'
-import { authHeader } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { listAdminPizzas } from '@/lib/backend'
+import AdminProblem from './AdminProblem'
 import SortablePizzaList from './SortablePizzaList'
 import styles from './dashboard.module.css'
 
-async function fetchAdminPizzas(): Promise<PizzaOut[]> {
-  const backend = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:8000'
-
-  try {
-    const res = await fetch(`${backend}/api/admin/pizzas`, {
-      headers: await authHeader(),
-      cache: 'no-store',
-    })
-    if (!res.ok) return []
-    return res.json()
-  } catch {
-    return []
-  }
-}
-
 export default async function AdminDashboard() {
-  const pizzas = await fetchAdminPizzas()
+  const result = await listAdminPizzas()
+  if (!result.ok && result.error.kind === 'unauthorized') redirect('/admin/login')
 
   return (
     <div className={styles.page}>
@@ -31,7 +18,9 @@ export default async function AdminDashboard() {
         </Link>
       </div>
 
-      {pizzas.length === 0 ? (
+      {!result.ok ? (
+        <AdminProblem kind={result.error.kind} />
+      ) : result.data.length === 0 ? (
         <div className={styles.empty}>
           <p>Nessuna pizza nel menu.</p>
           <Link href="/admin/pizzas/new" className={styles.emptyLink}>
@@ -39,7 +28,7 @@ export default async function AdminDashboard() {
           </Link>
         </div>
       ) : (
-        <SortablePizzaList pizzas={pizzas} />
+        <SortablePizzaList pizzas={result.data} />
       )}
     </div>
   )

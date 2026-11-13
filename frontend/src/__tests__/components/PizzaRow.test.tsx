@@ -4,10 +4,10 @@ import PizzaRow from '@/app/admin/PizzaRow'
 import * as actions from '@/app/admin/actions'
 import type { PizzaOut } from '@/lib/types'
 
-const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }))
+const { refreshMock, pushMock } = vi.hoisted(() => ({ refreshMock: vi.fn(), pushMock: vi.fn() }))
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: refreshMock }),
+  useRouter: () => ({ push: pushMock, refresh: refreshMock }),
 }))
 
 vi.mock('@/app/admin/actions', () => ({
@@ -16,6 +16,15 @@ vi.mock('@/app/admin/actions', () => ({
 }))
 
 const deletePizzaAction = vi.mocked(actions.deletePizzaAction)
+const toggleAvailabilityAction = vi.mocked(actions.toggleAvailabilityAction)
+
+async function confirmDelete(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Elimina' }))
+  const dialog = screen.getByRole('dialog')
+  await user.click(
+    Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Elimina')!,
+  )
+}
 
 // jsdom has no modal <dialog> support; browsers provide the real behaviour.
 beforeAll(() => {
@@ -80,7 +89,7 @@ describe('PizzaRow', () => {
 
     it('deletes the pizza when confirmed in the dialog', async () => {
       const user = userEvent.setup()
-      deletePizzaAction.mockResolvedValue(undefined)
+      deletePizzaAction.mockResolvedValue({ ok: true, data: undefined })
       render(<PizzaRow pizza={pizza} />)
 
       await user.click(screen.getByRole('button', { name: 'Elimina' }))
@@ -91,6 +100,50 @@ describe('PizzaRow', () => {
 
       await waitFor(() => expect(deletePizzaAction).toHaveBeenCalledWith(pizza.id))
       await waitFor(() => expect(refreshMock).toHaveBeenCalled())
+    })
+
+    it('keeps the dialog open and explains when deletion fails', async () => {
+      const user = userEvent.setup()
+      deletePizzaAction.mockResolvedValue({ ok: false, error: { kind: 'unavailable' } })
+      render(<PizzaRow pizza={pizza} />)
+
+      await confirmDelete(user)
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/non è raggiungibile/i)
+      expect(screen.getByRole('dialog')).toBeVisible()
+    })
+
+    it('goes to login when the session has expired', async () => {
+      const user = userEvent.setup()
+      deletePizzaAction.mockResolvedValue({ ok: false, error: { kind: 'unauthorized' } })
+      render(<PizzaRow pizza={pizza} />)
+
+      await confirmDelete(user)
+
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/admin/login'))
+    })
+  })
+
+  describe('availability toggle', () => {
+    it('saves the opposite availability and refreshes', async () => {
+      const user = userEvent.setup()
+      toggleAvailabilityAction.mockResolvedValue({ ok: true, data: undefined })
+      render(<PizzaRow pizza={pizza} />)
+
+      await user.click(screen.getByRole('button', { name: 'Disattiva pizza' }))
+
+      await waitFor(() => expect(toggleAvailabilityAction).toHaveBeenCalledWith(pizza.id, false))
+      await waitFor(() => expect(refreshMock).toHaveBeenCalled())
+    })
+
+    it('explains when the change could not be saved', async () => {
+      const user = userEvent.setup()
+      toggleAvailabilityAction.mockResolvedValue({ ok: false, error: { kind: 'unavailable' } })
+      render(<PizzaRow pizza={pizza} />)
+
+      await user.click(screen.getByRole('button', { name: 'Disattiva pizza' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/non è raggiungibile/i)
     })
   })
 })
