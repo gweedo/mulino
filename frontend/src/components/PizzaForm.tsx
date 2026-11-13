@@ -164,7 +164,7 @@ export default function PizzaForm({ initial, action }: PizzaFormProps) {
         <input
           className={`${styles.input} ${styles.inputPrice}`}
           type="number"
-          min="0.01"
+          min="0.50"
           step="0.50"
           value={priceAmount}
           onChange={(e) => setPriceAmount(e.target.value)}

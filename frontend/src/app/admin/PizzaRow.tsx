@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useId, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { PizzaOut } from '@/lib/types'
@@ -17,7 +17,15 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
   const router = useRouter()
   const [toggling, startToggle] = useTransition()
   const [deleting, startDelete] = useTransition()
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
+  const bodyId = useId()
+
+  useEffect(() => {
+    if (confirming) dialogRef.current?.showModal()
+  }, [confirming])
 
   function handleToggle() {
     startToggle(async () => {
@@ -26,14 +34,25 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
     })
   }
 
-  function handleDeleteClick() {
-    if (!confirmDelete) {
-      setConfirmDelete(true)
-      setTimeout(() => setConfirmDelete(false), 4000)
-      return
-    }
+  function openConfirm() {
+    setDeleteError(null)
+    setConfirming(true)
+  }
+
+  function closeConfirm() {
+    if (!deleting) dialogRef.current?.close()
+  }
+
+  function handleConfirmDelete() {
+    setDeleteError(null)
     startDelete(async () => {
-      await deletePizzaAction(pizza.id)
+      try {
+        await deletePizzaAction(pizza.id)
+      } catch {
+        setDeleteError('Eliminazione non riuscita. Riprova.')
+        return
+      }
+      dialogRef.current?.close()
       router.refresh()
     })
   }
@@ -46,6 +65,13 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
       </div>
 
       <p className={styles.pizzaDesc}>{pizza.description}</p>
+
+      {pizza.ingredients.length > 0 && (
+        <p className={styles.pizzaIngredients}>
+          <span className={styles.pizzaIngredientsLabel}>Ingredienti: </span>
+          {pizza.ingredients.join(', ')}
+        </p>
+      )}
 
       <div className={styles.rowActions}>
         <button
@@ -65,15 +91,65 @@ export default function PizzaRow({ pizza }: { pizza: PizzaOut }) {
         </Link>
 
         <button
-          className={`${styles.deleteBtn} ${confirmDelete ? styles.deleteBtnConfirm : ''}`}
+          className={styles.deleteBtn}
           type="button"
-          onClick={handleDeleteClick}
-          disabled={deleting}
-          aria-busy={deleting}
+          onClick={openConfirm}
+          aria-haspopup="dialog"
         >
-          {deleting ? 'Eliminazione…' : confirmDelete ? 'Sei sicuro?' : 'Elimina'}
+          Elimina
         </button>
       </div>
+
+      {confirming && (
+        <dialog
+          ref={dialogRef}
+          className={styles.dialog}
+          aria-labelledby={titleId}
+          aria-describedby={bodyId}
+          onClose={() => setConfirming(false)}
+          onCancel={(e) => {
+            if (deleting) e.preventDefault()
+          }}
+          onClick={(e) => {
+            // A click on the backdrop lands on the <dialog> element itself.
+            if (e.target === e.currentTarget) closeConfirm()
+          }}
+        >
+          <h2 id={titleId} className={styles.dialogTitle}>
+            Eliminare «{pizza.name}»?
+          </h2>
+          <p id={bodyId} className={styles.dialogBody}>
+            La pizza verrà rimossa dal menu. L’operazione non si può annullare.
+          </p>
+
+          {deleteError && (
+            <p className={styles.dialogError} role="alert">
+              {deleteError}
+            </p>
+          )}
+
+          <div className={styles.dialogActions}>
+            <button
+              className={styles.dialogCancel}
+              type="button"
+              onClick={closeConfirm}
+              disabled={deleting}
+              autoFocus
+            >
+              Annulla
+            </button>
+            <button
+              className={styles.dialogConfirm}
+              type="button"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              aria-busy={deleting}
+            >
+              {deleting ? 'Eliminazione…' : 'Elimina'}
+            </button>
+          </div>
+        </dialog>
+      )}
     </div>
   )
 }

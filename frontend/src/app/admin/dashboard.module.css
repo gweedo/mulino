@@ -115,6 +115,15 @@
   -webkit-box-orient: vertical;
 }
 
+.pizzaIngredients {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.pizzaIngredientsLabel {
+  font-weight: 600;
+}
+
 .rowActions {
   display: flex;
   align-items: center;
@@ -195,12 +204,85 @@
   color: var(--color-error);
 }
 
-.deleteBtnConfirm {
-  color: var(--color-error);
-  border-color: oklch(0.480 0.170 27 / 0.4);
+/* ── Delete confirmation dialog ─────────────────────────────── */
+.dialog {
+  /* globals.css resets every margin to 0; auto restores the browser's centring of a modal <dialog>. */
+  margin: auto;
+  width: min(26rem, calc(100% - 2rem));
+  padding: var(--space-md);
+  border: none;
+  border-radius: 6px;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  box-shadow: 0 12px 40px oklch(0.180 0.020 200 / 0.25);
 }
 
-.deleteBtn:disabled {
+.dialog::backdrop {
+  background-color: oklch(0.180 0.020 200 / 0.45);
+}
+
+.dialogTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 var(--space-xs);
+}
+
+.dialogBody {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.dialogError {
+  margin: var(--space-sm) 0 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-error);
+  background-color: var(--color-error-surface);
+  border-radius: 3px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: var(--space-md);
+}
+
+.dialogCancel,
+.dialogConfirm {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.dialogCancel {
+  color: var(--color-ink);
+  background: none;
+  border: 1px solid var(--color-divider);
+}
+
+.dialogCancel:hover:not(:disabled) {
+  background-color: var(--color-surface);
+}
+
+.dialogConfirm {
+  color: var(--color-on-deep);
+  background-color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.dialogConfirm:hover:not(:disabled) {
+  background-color: oklch(0.420 0.170 27);
+}
+
+.dialogCancel:disabled,
+.dialogConfirm:disabled {
   opacity: 0.6;
   cursor: progress;
 }
