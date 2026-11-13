@@ -37,8 +37,10 @@ The backend is split into four layers with a strict one-way dependency rule:
 - `src/app/` — App Router pages. The homepage (`page.tsx`) is a Server
   Component that fetches pizzas with ISR (60 s revalidate + tag-based
   invalidation). `/admin/*` pages are client components.
-- `src/lib/api.ts` — a typed `fetch` wrapper using relative `/api/...`
-  URLs and `credentials: 'include'`. All browser-side API calls go through it.
+- `src/lib/backend.ts` — server-only; the one module that calls FastAPI.
+  It owns the base URL, the Bearer token, status → error kind and cache
+  invalidation, and returns a typed `Result` (`src/lib/result.ts`) instead of
+  throwing. Server actions and pages call it; the browser never calls FastAPI.
 - `src/lib/api-types.ts` — generated from the backend's OpenAPI schema via
   `npm run types:gen`; CI fails if it drifts from the committed schema.
 - `src/proxy.ts` — refreshes the Supabase session and redirects `/admin/*`
@@ -64,12 +66,14 @@ Supabase's Data API is switched off and app tables live in a private schema,
 so FastAPI is the only way into the data
 ([ADR 0002](./adr/0002-no-supabase-data-api.md)).
 
-## Same-origin API
+## Server-to-server API
 
-The browser always talks to the frontend origin. `next.config.ts` rewrites
-`/api/*` to the backend (`BACKEND_INTERNAL_URL`). Because requests are
-same-origin from the browser's perspective, the backend sets **no CORS
-headers**. The Supabase session cookies are `httpOnly`, `SameSite=Lax`, and
+The browser only talks to the frontend origin. FastAPI is called from the
+Next.js server alone — server actions and Server Components, through
+`src/lib/backend.ts` at `BACKEND_INTERNAL_URL` — and there is no `/api`
+rewrite, so FastAPI need not be reachable from the internet
+([ADR 0004](./adr/0004-fastapi-reached-only-from-nextjs-server.md)). The
+backend sets **no CORS headers**. The Supabase session cookies are `httpOnly`, `SameSite=Lax`, and
 `Secure` only over HTTPS.
 
 ## Stack
